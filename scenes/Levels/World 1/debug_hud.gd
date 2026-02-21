@@ -3,8 +3,18 @@ extends CanvasLayer
 @onready var label: Label = $Readout
 
 func _process(_dt: float) -> void:
-	# Safely find the player gun in the scene tree instead of assuming GameManager has a reference.
-	var b: RigidBody3D = get_tree().get_root().find_node("PlayerGun", true, false)
+	var b: RigidBody3D = null
+
+	# Prefer GameManager's reference if available (recommended pattern).
+	if Engine.has_singleton("GameManager"):
+		var gm := Engine.get_singleton("GameManager")
+		if gm and gm.player_gun != null:
+			b = gm.player_gun
+
+	# Fallback: search the scene tree by node name.
+	if b == null:
+		b = get_tree().get_root().find_node("PlayerGun", true, false)
+
 	if b == null:
 		label.text = "No gun found"
 		return
