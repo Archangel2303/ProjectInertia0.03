@@ -17,7 +17,9 @@ func _process(_dt: float) -> void:
 		if root_scene == null and get_tree().get_root().get_child_count() > 0:
 			root_scene = get_tree().get_root().get_child(0)
 		if root_scene != null:
-			b = root_scene.find_node("PlayerGun", true, false)
+			var candidate: Node = _find_node_recursive(root_scene, "PlayerGun")
+			if candidate != null:
+				b = candidate as RigidBody3D
 
 	if b == null:
 		label.text = "No gun found"
@@ -28,3 +30,12 @@ func _process(_dt: float) -> void:
 		str(b.linear_velocity),
 		str(b.rotation_degrees)
 	]
+
+func _find_node_recursive(node: Node, target_name: String) -> Node:
+	if node.name == target_name:
+		return node
+	for child in node.get_children():
+		var found: Node = _find_node_recursive(child, target_name)
+		if found != null:
+			return found
+	return null
