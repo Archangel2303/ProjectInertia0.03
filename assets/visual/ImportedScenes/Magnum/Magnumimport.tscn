@@ -1,0 +1,9 @@
+[gd_scene format=3 uid="uid://cfeecancfoncl"]
+
+[ext_resource type="PackedScene" uid="uid://dwgw4xdbl6866" path="res://assets/visual/magnum/smith__wesson_500_magnum.glb" id="1_tb4qu"]
+[ext_resource type="ArrayMesh" uid="uid://n6w6c4koxs5i" path="res://assets/visual/ImportedScenes/Magnum/Magnum_array_mesh.tres" id="2_5uy4i"]
+
+[node name="Sketchfab_Scene" unique_id=1094617692 instance=ExtResource("1_tb4qu")]
+
+[node name="Object_7" parent="Sketchfab_model/13c3f77b8c784027b12d75355a709c18_fbx/Object_2/RootNode/Object_4/Skeleton3D" parent_id_path=PackedInt32Array(1290976731) index="1" unique_id=69508312]
+mesh = ExtResource("2_5uy4i")

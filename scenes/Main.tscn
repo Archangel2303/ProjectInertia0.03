@@ -1,0 +1,17 @@
+[gd_scene format=3 uid="uid://dkb6f2d1u2hda"]
+
+[node name="Main" type="Node3D" unique_id=564323418]
+
+[node name="World3D" type="Node3D" parent="." unique_id=463637954]
+
+[node name="LevelGeometry3D" type="StaticBody3D" parent="World3D" unique_id=1517201229]
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="World3D/LevelGeometry3D" unique_id=1088272611]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="World3D/LevelGeometry3D" unique_id=273005776]
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="World3D" unique_id=1852373052]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="World3D" unique_id=183146169]
+
+[node name="EnemyContainer" type="Node3D" parent="World3D" unique_id=1292696895]

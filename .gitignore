@@ -1,0 +1,24 @@
+## Godot
+.import/
+*.import
+*.import?
+
+# OS files
+Thumbs.db
+desktop.ini
+Icon?
+
+# Visual Studio / Rider
+.vs/
+.idea/
+
+# Mono and build artifacts
+.mono/
+bin/
+obj/
+
+# Exported files
+export_presets.cfg
+# Godot 4+ specific ignores
+.godot/
+/android/

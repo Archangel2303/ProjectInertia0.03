@@ -1,0 +1,5 @@
+[gd_scene format=3 uid="uid://boyl7sejbdo37"]
+
+[ext_resource type="PackedScene" uid="uid://d11wxi8bmfaf7" path="res://assets/visual/Bullet/bullet_9_mm.glb" id="1_q2ob4"]
+
+[node name="Sketchfab_Scene" unique_id=95533858 instance=ExtResource("1_q2ob4")]
