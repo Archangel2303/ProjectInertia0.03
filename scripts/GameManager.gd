@@ -23,7 +23,6 @@ var current_level_path: String = "FiringRange.tscn" #points to debug stage
 
 @export var player_gun_path: NodePath = NodePath("")
 @onready var player_gun: RigidBody3D = get_node_or_null(player_gun_path)
-var player_gun: RigidBody3D
 
 func _ready() -> void:
 	emit_signal("state_changed", state)
