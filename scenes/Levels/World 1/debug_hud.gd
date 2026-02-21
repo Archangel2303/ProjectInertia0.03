@@ -11,9 +11,13 @@ func _process(_dt: float) -> void:
 		if gm and gm.player_gun != null:
 			b = gm.player_gun
 
-	# Fallback: search the scene tree by node name.
+	# Fallback: search the current scene (safer than searching the Window root)
 	if b == null:
-		b = get_tree().get_root().find_node("PlayerGun", true, false)
+		var root_scene := get_tree().get_current_scene()
+		if root_scene == null and get_tree().get_root().get_child_count() > 0:
+			root_scene = get_tree().get_root().get_child(0)
+		if root_scene != null:
+			b = root_scene.find_node("PlayerGun", true, false)
 
 	if b == null:
 		label.text = "No gun found"
