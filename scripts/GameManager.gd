@@ -21,10 +21,18 @@ var max_ammo: int = 5
 var ammo: int = 5
 var current_level_path: String = "FiringRange.tscn" #points to debug stage
 
+@export var player_gun_path: NodePath = NodePath("")
+@onready var player_gun: RigidBody3D = get_node_or_null(player_gun_path)
+var player_gun: RigidBody3D
+
 func _ready() -> void:
 	emit_signal("state_changed", state)
 	emit_signal("score_changed", score)
 	emit_signal("ammo_changed", ammo, max_ammo)
+
+	# Ensure the exported path is resolved at runtime if set in the inspector
+	if player_gun == null and player_gun_path != NodePath(""):
+		player_gun = get_node_or_null(player_gun_path)
 
 func set_state(value: int) -> void:
 	if state == value:
