@@ -26,12 +26,13 @@ func _physics_process(_delta:float) -> void:
 		apply_passive_spin()
 
 
+
 func apply_passive_spin() -> void:
 	#YAW SPIN (around y axis)-real torque
 	angular_velocity = Vector3(0, passive_spin_speed * spin_direction, 0)	
 	linear_velocity = Vector3.ZERO
 
-func _input(event):
+func _input(event): #function to handle input events
 	if event.is_action_pressed("fire"):
 		_fire()
 	

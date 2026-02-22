@@ -1,18 +1,22 @@
 extends Node
 
-
+#-----SIGNALS-----
 signal ammo_changed(current: int, max_ammo: int)
 signal score_changed(score: int)
 signal state_changed(state: int)
 signal level_changed(level_path: String)
 signal run_reset()
+signal slow_time_changed(active: bool)
 
+#------ENUMS------
 enum GameState { 
 	PLAYING, 
 	PAUSED, 
 	LEVEL_COMPLETE, 
 	GAME_OVER 
 	}
+
+#------Vars------
 
 var state: int = GameState.PLAYING
 
@@ -90,9 +94,11 @@ func start_slow_time() -> void:
 		return
 	is_slowing_time = true
 	Engine.time_scale = slow_time_scale
+	emit_signal("slow_time_changed", true)
 	
 func stop_slow_time() -> void:
 	if not is_slowing_time:
 		return
 	is_slowing_time = false
 	Engine.time_scale = normal_time_scale
+	emit_signal("slow_time_changed", false)
