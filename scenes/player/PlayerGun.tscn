@@ -28,9 +28,7 @@ shape = SubResource("ConvexPolygonShape3D_1iqai")
 [node name="Muzzle" type="Marker3D" parent="." unique_id=626970185]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.0019194484, -1.1489439)
 
-[node name="Camera Rig" type="Node3D" parent="." unique_id=442125392]
+[node name="Sight" type="Marker3D" parent="." unique_id=1668820210]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.07958177, 0.051508293)
 
-[node name="SpringArm3D" type="SpringArm3D" parent="Camera Rig" unique_id=1562230212]
-
-[node name="Camera3D" type="Camera3D" parent="Camera Rig/SpringArm3D" unique_id=995766948]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.01872468, 0.6822289, 1.9244847)
+[node name="Pivot" type="Marker3D" parent="." unique_id=155378166]

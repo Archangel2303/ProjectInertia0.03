@@ -11,7 +11,7 @@ extends RigidBody3D
 @export var backspin_lever := 0.18
 
 var has_fired := false
-var passive_spin_speed := 6.0 #tweak later, can be faster than active spin for more visual flair
+var passive_spin_speed := 4.5 #tweak later, can be faster than active spin for more visual flair
 #-------State-------
 
 var spin_direction :=1
@@ -28,8 +28,10 @@ func _physics_process(_delta:float) -> void:
 
 
 func apply_passive_spin() -> void:
-	#YAW SPIN (around y axis)-real torque
-	angular_velocity = Vector3(0, passive_spin_speed * spin_direction, 0)	
+	# YAW SPIN (around y axis) — soften assignment to avoid abrupt angular snaps
+	var target_ang := Vector3(0, passive_spin_speed * spin_direction, 0)
+	# smooth toward target angular velocity (reduces per-frame discontinuities)
+	angular_velocity = angular_velocity.lerp(target_ang, 0.12)
 	linear_velocity = Vector3.ZERO
 
 func _input(event): #function to handle input events

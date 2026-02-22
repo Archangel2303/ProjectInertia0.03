@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://x4kqwwikodk3"]
 
-[ext_resource type="PackedScene" uid="uid://dxutpopiyfd1h" path="res://scenes/player/PlayerGun.tscn" id="1_wpc48"]
+[ext_resource type="PackedScene" uid="uid://b3y3je2228fgo" path="res://scenes/player/PlayerGunRoot.tscn" id="2_8f0oq"]
 [ext_resource type="Script" uid="uid://dx61ja24yvaui" path="res://scenes/Levels/World 1/debug_hud.gd" id="2_wfsm5"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_kuvsi"]
@@ -75,12 +75,11 @@ shape = SubResource("BoxShape3D_wfsm5")
 transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, -0.08214617, 5.7526746, -0.024152994)
 mesh = SubResource("BoxMesh_8f0oq")
 
-[node name="PlayerGun" parent="." unique_id=49404378 instance=ExtResource("1_wpc48")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.019062161, 2.1013103, 0.09079385)
-
 [node name="DebugHUD" type="CanvasLayer" parent="." unique_id=933913457]
 script = ExtResource("2_wfsm5")
 
 [node name="Readout" type="Label" parent="DebugHUD" unique_id=92923551]
 offset_right = 470.0
 offset_bottom = 192.0
+
+[node name="PlayerGunwithcam" parent="DebugHUD" unique_id=2023833259 instance=ExtResource("2_8f0oq")]
