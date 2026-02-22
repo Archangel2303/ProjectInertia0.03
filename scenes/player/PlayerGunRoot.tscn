@@ -1,28 +1,36 @@
 [gd_scene format=3 uid="uid://b3y3je2228fgo"]
 
 [ext_resource type="PackedScene" uid="uid://dxutpopiyfd1h" path="res://scenes/player/PlayerGun.tscn" id="1_1gijn"]
-[ext_resource type="Script" uid="uid://rbr7sgd18kbr" path="res://scenes/player/camera_rig.gd" id="2_0263j"]
+[ext_resource type="Script" uid="uid://hydnobb1bva4" path="res://scenes/player/recoil_camera_2stage.gd" id="3_recoil"]
 
 [node name="PlayerGunwithcam" type="Node3D" unique_id=2023833259]
 
 [node name="PlayerGun" parent="." unique_id=49404378 instance=ExtResource("1_1gijn")]
 
+[node name="Sight2" type="Marker3D" parent="PlayerGun" unique_id=1462523811]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.032668024, -1.1594155)
+
 [node name="Pivot2" type="Marker3D" parent="PlayerGun" unique_id=1125015668]
+
+[node name="camera follow stage 2" type="Marker3D" parent="PlayerGun" unique_id=70711440]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.14290735, 0.32015815)
 
 [node name="Camera Rig" type="Node3D" parent="." unique_id=768805096]
 top_level = true
-script = ExtResource("2_0263j")
-player_gun_path = NodePath("../PlayerGun")
+script = ExtResource("3_recoil")
+cam_path = NodePath("SpringArm3D/Camera3D")
 camera_path = NodePath("SpringArm3D/Camera3D")
-sight_path = NodePath("../Sight")
-pivot_path = NodePath("../PlayerGun/Pivot2")
-aim_distance = -0.1
- 
+gun_path = NodePath("../PlayerGun")
+player_path = NodePath("../PlayerGun")
+follow_marker_path = NodePath("../camera follow stage 1 marker")
+cam_aim_path = NodePath("../PlayerGun/camera follow stage 2")
+sight_path = NodePath("../PlayerGun/Sight2")
+muzzle_path = NodePath("../PlayerGun/Sight2")
 
 [node name="SpringArm3D" type="SpringArm3D" parent="Camera Rig" unique_id=98548028]
 
 [node name="Camera3D" type="Camera3D" parent="Camera Rig/SpringArm3D" unique_id=1427126429]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.01872468, 0.6822289, 1.9244847)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.01872468, 0.86550426, 2.7411351)
 
-[node name="Sight" type="Marker3D" parent="." unique_id=1462523811]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.13572767, 0.14775923)
+[node name="camera follow stage 1 marker" type="Marker3D" parent="." unique_id=1650318049]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.86400586, 2.7461152)

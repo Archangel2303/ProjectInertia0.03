@@ -82,4 +82,4 @@ script = ExtResource("2_wfsm5")
 offset_right = 470.0
 offset_bottom = 192.0
 
-[node name="PlayerGunwithcam" parent="DebugHUD" unique_id=2023833259 instance=ExtResource("2_8f0oq")]
+[node name="PlayerGunwithcam" parent="." unique_id=2023833259 instance=ExtResource("2_8f0oq")]
