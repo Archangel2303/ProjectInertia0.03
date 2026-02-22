@@ -36,9 +36,10 @@ func _input(event):
 		_fire()
 	
 	if event.is_action_pressed("slow_time"):
-		GameManager.start_slow_time()
+		gamemanager.start_slow_time()
+
 	if event.is_action_released("slow_time"):
-		GameManager.stop_slow_time()
+		gamemanager.stop_slow_time()
 
 
 func _fire():
