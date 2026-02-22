@@ -1,5 +1,5 @@
 extends Node
-class_name GameManager
+
 
 signal ammo_changed(current: int, max_ammo: int)
 signal score_changed(score: int)
@@ -17,9 +17,15 @@ enum GameState {
 var state: int = GameState.PLAYING
 
 var score: int = 0
+
 var max_ammo: int = 5
 var ammo: int = 5
+
 var current_level_path: String = "FiringRange.tscn" #points to debug stage
+
+var normal_time_scale := 1.0
+var slow_time_scale := 0.2 
+var is_slowing_time := false
 
 @export var player_gun_path: NodePath = NodePath("")
 @onready var player_gun: RigidBody3D = get_node_or_null(player_gun_path)
@@ -78,3 +84,15 @@ func restart_level() -> void:
 		get_tree().reload_current_scene()
 	else:
 		get_tree().change_scene_to_file(current_level_path)
+
+func start_slow_time() -> void:
+	if is_slowing_time:
+		return
+	is_slowing_time = true
+	Engine.time_scale = slow_time_scale
+	
+func stop_slow_time() -> void:
+	if not is_slowing_time:
+		return
+	is_slowing_time = false
+	Engine.time_scale = normal_time_scale

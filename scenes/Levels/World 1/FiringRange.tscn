@@ -1,0 +1,86 @@
+[gd_scene format=3 uid="uid://x4kqwwikodk3"]
+
+[ext_resource type="PackedScene" uid="uid://dxutpopiyfd1h" path="res://scenes/player/PlayerGun.tscn" id="1_wpc48"]
+[ext_resource type="Script" uid="uid://dx61ja24yvaui" path="res://scenes/Levels/World 1/debug_hud.gd" id="2_wfsm5"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_kuvsi"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_wpc48"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_wfsm5"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_8f0oq"]
+
+[node name="FiringRange" type="Node3D" unique_id=584624916]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1757781760]
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=1646996789]
+transform = Transform3D(1, 0, 0, 0, -0.56600344, 0.8244029, 0, -0.8244029, -0.56600344, 0, 2.6566153, -1.857306)
+
+[node name="Floor" type="StaticBody3D" parent="." unique_id=1871802153]
+transform = Transform3D(8, 0, 0, 0, 8, 0, 0, 0, 8, 0, 0, 0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Floor" unique_id=1954965743]
+transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, 0, -1.9923606, 0)
+shape = SubResource("BoxShape3D_kuvsi")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Floor" unique_id=968877081]
+transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, 0, -2.0047474, 0)
+mesh = SubResource("BoxMesh_wpc48")
+
+[node name="Walls" type="StaticBody3D" parent="." unique_id=677455794]
+transform = Transform3D(8, 0, 0, 0, 8, 0, 0, 0, 8, 0, 0, 0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Walls" unique_id=1731404456]
+transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, -3.9983516, 1.9085188, 0)
+shape = SubResource("BoxShape3D_wfsm5")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Walls" unique_id=733297739]
+transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, -3.9983516, 1.9085188, 0)
+mesh = SubResource("BoxMesh_8f0oq")
+
+[node name="CollisionShape3D2" type="CollisionShape3D" parent="Walls" unique_id=775679801]
+transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, 3.8521242, 1.9085188, 0)
+shape = SubResource("BoxShape3D_wfsm5")
+
+[node name="MeshInstance3D2" type="MeshInstance3D" parent="Walls" unique_id=969497349]
+transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, 3.8521242, 1.9085188, 0)
+mesh = SubResource("BoxMesh_8f0oq")
+
+[node name="CollisionShape3D3" type="CollisionShape3D" parent="Walls" unique_id=1474083539]
+transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, -0.08214617, 1.9085188, 3.9663255)
+shape = SubResource("BoxShape3D_wfsm5")
+
+[node name="MeshInstance3D3" type="MeshInstance3D" parent="Walls" unique_id=1225054157]
+transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, -0.08214617, 1.9085188, 3.9663255)
+mesh = SubResource("BoxMesh_8f0oq")
+
+[node name="CollisionShape3D4" type="CollisionShape3D" parent="Walls" unique_id=248685357]
+transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, -0.08214617, 1.9085188, -3.9336064)
+shape = SubResource("BoxShape3D_wfsm5")
+
+[node name="MeshInstance3D4" type="MeshInstance3D" parent="Walls" unique_id=674798085]
+transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, -0.08214617, 1.9085188, -3.9336064)
+mesh = SubResource("BoxMesh_8f0oq")
+
+[node name="Roof" type="StaticBody3D" parent="." unique_id=45011899]
+transform = Transform3D(8, 0, 0, 0, 8, 0, 0, 0, 8, 0, 0, 0)
+
+[node name="CollisionShape3D3" type="CollisionShape3D" parent="Roof" unique_id=1238545780]
+transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, -0.08214617, 5.7526746, -0.024152994)
+shape = SubResource("BoxShape3D_wfsm5")
+
+[node name="MeshInstance3D3" type="MeshInstance3D" parent="Roof" unique_id=2120353129]
+transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, -0.08214617, 5.7526746, -0.024152994)
+mesh = SubResource("BoxMesh_8f0oq")
+
+[node name="PlayerGun" parent="." unique_id=49404378 instance=ExtResource("1_wpc48")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.019062161, 2.1013103, 0.09079385)
+
+[node name="DebugHUD" type="CanvasLayer" parent="." unique_id=933913457]
+script = ExtResource("2_wfsm5")
+
+[node name="Readout" type="Label" parent="DebugHUD" unique_id=92923551]
+offset_right = 470.0
+offset_bottom = 192.0
