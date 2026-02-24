@@ -1,5 +1,8 @@
 [gd_scene format=3 uid="uid://boyl7sejbdo37"]
 
-[ext_resource type="PackedScene" uid="uid://d11wxi8bmfaf7" path="res://assets/visual/Bullet/bullet_9_mm.glb" id="1_q2ob4"]
+[ext_resource type="PackedScene" uid="uid://dm2tl3o68vpu3" path="res://assets/visual/Bullet/bullet_9_mm.glb" id="1_q2ob4"]
 
 [node name="Sketchfab_Scene" unique_id=95533858 instance=ExtResource("1_q2ob4")]
+
+[node name="Bullet_bullet_0" parent="Sketchfab_model/Bullet_fbx/RootNode/Bullet" parent_id_path=PackedInt32Array(1081142370) index="0" unique_id=1725415046]
+transform = Transform3D(0.07, 0, 0, 0, 0.07, 0, 0, 0, 0.07, 0, 0, 0)

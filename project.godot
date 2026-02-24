@@ -33,6 +33,14 @@ slow_time={
 ]
 }
 
+[layer_names]
+
+3d_physics/layer_1="world"
+3d_physics/layer_2="bullet"
+3d_physics/layer_3="bullet_hitbox"
+3d_physics/layer_4="enemy_hitbox"
+3d_physics/layer_5="Enemy"
+
 [physics]
 
 3d/physics_engine="Jolt Physics"

@@ -2,6 +2,7 @@
 
 [ext_resource type="PackedScene" uid="uid://b3y3je2228fgo" path="res://scenes/player/PlayerGunRoot.tscn" id="2_8f0oq"]
 [ext_resource type="Script" uid="uid://dx61ja24yvaui" path="res://scenes/Levels/World 1/debug_hud.gd" id="2_wfsm5"]
+[ext_resource type="PackedScene" uid="uid://cotjyg87mxldd" path="res://scenes/Enemy/Enemy_TestDummy.tscn" id="3_8f0oq"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_kuvsi"]
 
@@ -83,3 +84,16 @@ offset_right = 470.0
 offset_bottom = 192.0
 
 [node name="PlayerGunwithcam" parent="." unique_id=2023833259 instance=ExtResource("2_8f0oq")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8347964, 0)
+
+[node name="EnemyTestDummy" parent="." unique_id=466057592 instance=ExtResource("3_8f0oq")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5821676, 0.08981432, -10.927132)
+
+[node name="EnemyTestDummy2" parent="." unique_id=821991845 instance=ExtResource("3_8f0oq")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.7862453, 0.08981432, -5.849353)
+
+[node name="EnemyTestDummy3" parent="." unique_id=1443758086 instance=ExtResource("3_8f0oq")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7.2611904, 0.08981432, 0.88372993)
+
+[node name="EnemyTestDummy4" parent="." unique_id=415437669 instance=ExtResource("3_8f0oq")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.902371, 0.08981432, -2.3654068)

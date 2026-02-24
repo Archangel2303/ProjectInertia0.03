@@ -1,8 +1,13 @@
 [gd_scene format=4 uid="uid://cao3jwvjkq08s"]
 
-[ext_resource type="Texture2D" uid="uid://ditgj32l121m1" path="res://assets/visual/Bullet/bullet_9_mm_0.png" id="1_a7adj"]
-[ext_resource type="Texture2D" uid="uid://cht668cgfad26" path="res://assets/visual/Bullet/bullet_9_mm_1.png" id="2_1g75b"]
-[ext_resource type="Texture2D" uid="uid://dprk31xgtiggu" path="res://assets/visual/Bullet/bullet_9_mm_2.png" id="3_actos"]
+[ext_resource type="Script" uid="uid://issux2xv30pk" path="res://scenes/Bullet/bullet.gd" id="1_1g75b"]
+[ext_resource type="Texture2D" uid="uid://bvrnx5xjnxbem" path="res://assets/visual/Bullet/bullet_9_mm_0.png" id="1_a7adj"]
+[ext_resource type="Texture2D" uid="uid://btq6icf6ywcb1" path="res://assets/visual/Bullet/bullet_9_mm_1.png" id="2_1g75b"]
+[ext_resource type="Texture2D" uid="uid://bsj5r2mri2fid" path="res://assets/visual/Bullet/bullet_9_mm_2.png" id="3_actos"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_a7adj"]
+radius = 0.4974488
+height = 2.9152963
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ycmsg"]
 resource_name = "bullet"
@@ -52,18 +57,27 @@ _surfaces = [{
 blend_shape_mode = 0
 shadow_mesh = SubResource("ArrayMesh_ow035")
 
-[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_a7adj"]
-radius = 0.4974488
-height = 2.9152963
+[node name="Bullet01" type="RigidBody3D" unique_id=722390975]
+collision_layer = 2
+continuous_cd = true
+contact_monitor = true
+max_contacts_reported = 8
+script = ExtResource("1_1g75b")
 
-[node name="Bullet01" type="Node3D" unique_id=125775450]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=181783287]
+transform = Transform3D(1.3374798e-16, 3.059797e-09, 0.07, 0.07, -3.059797e-09, 0, 3.059797e-09, 0.07, -3.059797e-09, 0, 0, 0)
+shape = SubResource("CapsuleShape3D_a7adj")
 
 [node name="Bullet_bullet_0" type="MeshInstance3D" parent="." unique_id=1963341035]
-transform = Transform3D(0.07, 0, 0, 0, 0.07, 0, 0, 0, 0.07, -0.06318927, 0, 0)
+transform = Transform3D(-3.059797e-09, 0, 0.07, 0, 0.07, 0, -0.07, 0, -3.059797e-09, 0, 0, 0)
 mesh = SubResource("ArrayMesh_cx7ec")
 
-[node name="StaticBody3D" type="StaticBody3D" parent="Bullet_bullet_0" unique_id=1335558003]
-transform = Transform3D(-4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0, 1, 1.1920929e-07, -1.4901161e-07, 1.4901161e-07)
+[node name="BulletHitbox" type="Area3D" parent="." unique_id=1701151166]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 0, 0, 0)
+collision_layer = 8
+collision_mask = 4
+monitorable = false
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Bullet_bullet_0/StaticBody3D" unique_id=181783287]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="BulletHitbox" unique_id=898829211]
+transform = Transform3D(9.1793915e-09, -0.07, -3.059797e-09, -2.6749597e-16, 3.059797e-09, -0.07, 0.07, 9.1793915e-09, 1.3374798e-16, 0, 0, 0)
 shape = SubResource("CapsuleShape3D_a7adj")
