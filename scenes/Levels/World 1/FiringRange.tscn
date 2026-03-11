@@ -19,7 +19,7 @@
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=1646996789]
 transform = Transform3D(1, 0, 0, 0, -0.56600344, 0.8244029, 0, -0.8244029, -0.56600344, 0, 2.6566153, -1.857306)
 
-[node name="Floor" type="StaticBody3D" parent="." unique_id=1871802153]
+[node name="Floor" type="StaticBody3D" parent="." unique_id=1871802153 groups=["world"]]
 transform = Transform3D(8, 0, 0, 0, 8, 0, 0, 0, 8, 0, 0, 0)
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Floor" unique_id=1954965743]
@@ -30,7 +30,7 @@ shape = SubResource("BoxShape3D_kuvsi")
 transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, 0, -2.0047474, 0)
 mesh = SubResource("BoxMesh_wpc48")
 
-[node name="Walls" type="StaticBody3D" parent="." unique_id=677455794]
+[node name="Walls" type="StaticBody3D" parent="." unique_id=677455794 groups=["world"]]
 transform = Transform3D(8, 0, 0, 0, 8, 0, 0, 0, 8, 0, 0, 0)
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Walls" unique_id=1731404456]
@@ -65,7 +65,7 @@ shape = SubResource("BoxShape3D_wfsm5")
 transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, -0.08214617, 1.9085188, -3.9336064)
 mesh = SubResource("BoxMesh_8f0oq")
 
-[node name="Roof" type="StaticBody3D" parent="." unique_id=45011899]
+[node name="Roof" type="StaticBody3D" parent="." unique_id=45011899 groups=["world"]]
 transform = Transform3D(8, 0, 0, 0, 8, 0, 0, 0, 8, 0, 0, 0)
 
 [node name="CollisionShape3D3" type="CollisionShape3D" parent="Roof" unique_id=1238545780]

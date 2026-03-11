@@ -1,48 +1,126 @@
 extends RigidBody3D
 
+signal fired(muzzle_origin: Vector3, fire_direction: Vector3)
+
+const GunSpinController = preload("res://scripts/gun_spin_controller.gd")
+const GunRecoilController = preload("res://scripts/gun_recoil_controller.gd")
+const GunProjectileSpawner = preload("res://scripts/gun_projectile_spawner.gd")
+const GunGravityArmer = preload("res://scripts/gun_gravity_armer.gd")
+
 #-------TUNABLE PROPERTIES-------
+# Target angular speed used by the passive spin controller.
 @export var spin_speed := 2.0 
+
+# Shot-time recoil spin torque magnitude.
+# Applied on the gun's local up axis and independent from passive spin direction.
+@export var fire_spin_impulse := 3.0
+
+# Axis used by passive spin controller.
+@export_enum("LocalUp", "WorldUp") var passive_spin_axis_mode: String = "LocalUp"
+
+# Rate at which passive spin converges toward target spin speed.
+@export var passive_spin_response := 14.0
+
+# Damps angular velocity components outside the passive spin axis.
+# Lower default preserves more natural tilt so local-up recoil is more visible.
+@export var cross_axis_damping := 6.0
+
+# Linear recoil impulse applied to the gun's center in `_apply_fire_impulses()`;
+# increases backward translation (felt recoil / displacement).
 @export var recoil_force := 8.0
 
-@export var pitch_impulse := 3.0
+# Extra upward recoil impulse added on fire (linear translation).
+@export var upward_recoil_force := 1.5
+
+# Post-shot translational energy tail so movement decays over time instead of stopping abruptly.
+@export var recoil_energy_falloff_time := 0.22
+@export var recoil_energy_falloff_strength := 20.0
+@export var recoil_energy_falloff_curve := 1.25
+
+# Extra linear damping for recoil settle. Higher values recover faster,
+# lower values let the gun drift longer after each shot.
+@export var recoil_recovery_damp := 2.0
+
+# Off-center recoil impulse magnitude used to create pitch (muzzle rise)
+# around the custom COM/origin.
+@export var pitch_impulse := 12.0
+
+# Moment arm (offset from custom COM/origin) used with `pitch_impulse`
+# to control pitch torque magnitude.
 @export var pitch_lever := 0.22
 
+# Direct torque impulse magnitude used to produce backward pitch rotation
+# (backflip-like spin) on fire.
 @export var backspin_impulse := 2.5
+
+# Optional moment arm for a supplemental off-center backspin impulse.
 @export var backspin_lever := 0.18
+
+# Damping rate for shot-time backspin axis only.
+# Higher values make backspin settle faster back into passive spin control.
+@export var backspin_falloff_damping := 2.2
 
 # Bullet spawn configuration
 @export var bullet_scene: PackedScene = preload("res://scenes/Bullet/Bullet01.tscn")
 @export var muzzle_node: Marker3D
 @export_enum("+X", "-X", "+Y", "-Y", "+Z", "-Z") var muzzle_forward_axis: String = "-Z"
+@export var enable_gravity_after_first_shot := true
+@export var gravity_scale_after_first_shot := 0.5
 @onready var muzzle: Marker3D = muzzle_node if muzzle_node != null else get_node_or_null("Muzzle") as Marker3D
 
-var has_fired := false
-var passive_spin_speed := 4.5 #tweak later, can be faster than active spin for more visual flair
 #-------State-------
 
-var spin_direction :=1
+var passive_spin_direction := 1
+var fire_queued := false
+var bullet_spawn_queued := false
+
+var spin_controller := GunSpinController.new()
+var recoil_controller := GunRecoilController.new()
+var projectile_spawner := GunProjectileSpawner.new()
+var gravity_armer := GunGravityArmer.new()
 
 func _ready() -> void:
-	gravity_scale = 0 #gun isn't affected by gravity, only our impulses and torques
+	gravity_armer.configure(enable_gravity_after_first_shot, gravity_scale_after_first_shot)
+	gravity_armer.reset(self, 0.0)
+	# Assumes RigidBody3D center_of_mass_mode is Custom and center_of_mass is Vector3.ZERO.
+	linear_damp = recoil_recovery_damp
 	linear_velocity = Vector3.ZERO
 	angular_velocity = Vector3.ZERO
 
-func _physics_process(_delta:float) -> void:
-	if not has_fired:
-		apply_passive_spin()
+func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
+	spin_controller.integrate_angular_velocity(
+		state,
+		passive_spin_axis_mode,
+		spin_speed,
+		passive_spin_direction,
+		passive_spin_response,
+		cross_axis_damping,
+		backspin_falloff_damping
+	)
+
+	if fire_queued:
+		fire_queued = false
+		_apply_fire_impulses(state.transform.basis)
+		bullet_spawn_queued = true
+		passive_spin_direction *= -1
 
 
+func _physics_process(delta: float) -> void:
+	recoil_controller.apply_recoil_falloff(
+		self,
+		delta,
+		recoil_energy_falloff_strength,
+		recoil_energy_falloff_curve
+	)
 
-func apply_passive_spin() -> void:
-	# YAW SPIN (around y axis) — soften assignment to avoid abrupt angular snaps
-	var target_ang := Vector3(0, passive_spin_speed * spin_direction, 0)
-	# smooth toward target angular velocity (reduces per-frame discontinuities)
-	angular_velocity = angular_velocity.lerp(target_ang, 0.12)
-	linear_velocity = Vector3.ZERO
+	if bullet_spawn_queued:
+		bullet_spawn_queued = false
+		var shooter := get_parent() as CollisionObject3D
+		_spawn_and_fire(shooter)
 
 func _input(event): #function to handle input events
 	if event.is_action_pressed("fire"):
-		_fire()
+		fire_queued = true
 	
 	if event.is_action_pressed("slow_time"):
 		gamemanager.start_slow_time()
@@ -51,72 +129,28 @@ func _input(event): #function to handle input events
 		gamemanager.stop_slow_time()
 
 
-func _fire():
-	# reverse the spin direction
-	spin_direction *= -1
-
-	# Local axes from the gun's current orientation
-	var xform_basis := global_transform.basis
-	var forward := -xform_basis.z                         #godot forward = -z
-	var up := xform_basis.y                               #Gun up axis
-	
-	#1) movement Recoil (real translation)
-	apply_central_impulse(-forward * recoil_force)
-
-	#2) Pitch recoil (real physics):
-	# apply an impulse above center of mass -> creates pitch torque naturally	
-	var pitch_offset := up * pitch_lever
-	apply_impulse(-forward * pitch_impulse, pitch_offset)
-
-	#3) Backspin (real physics):
-	# Apply an impulse forward of center of mass -> creates backspin torque naturally
-	var backspin_offset := forward * backspin_lever
-	apply_impulse(forward * backspin_impulse, backspin_offset)
-
-	# Spawn and fire the bullet (exclude the gun itself as the shooter)
-	var shooter := get_parent() as CollisionObject3D
-	_spawn_and_fire(shooter)
+func _apply_fire_impulses(xform_basis: Basis) -> void:
+	gravity_armer.arm_if_needed(self)
+	recoil_controller.apply_fire_impulses(
+		self,
+		xform_basis,
+		recoil_force,
+		upward_recoil_force,
+		recoil_energy_falloff_time,
+		fire_spin_impulse,
+		pitch_impulse,
+		pitch_lever,
+		backspin_impulse,
+		backspin_lever
+	)
 
 
 func _spawn_and_fire(shooter: CollisionObject3D) -> void:
 	if muzzle == null:
 		return
-	var bullet = bullet_scene.instantiate()
-	# add to current scene so physics and processing run
-	var root = get_tree().get_current_scene()
-	if root:
-		root.add_child(bullet)
-	else:
-		get_tree().get_root().add_child(bullet)
-	# place bullet at the muzzle transform
-	bullet.global_transform = muzzle.global_transform
-	# prevent immediate collision with the shooter and record shooter on bullet
-	if shooter:
-		bullet.add_collision_exception_with(shooter)
-		bullet.shooter = shooter
-	# fire in the configured muzzle forward direction
-	var dir := _get_muzzle_forward().normalized()
-	var up := muzzle.global_transform.basis.y.normalized()
-	if abs(dir.dot(up)) > 0.98:
-		up = Vector3.UP
-	bullet.look_at(bullet.global_transform.origin + dir, up)
-	bullet.fire(dir.normalized())
-
-
-func _get_muzzle_forward() -> Vector3:
-	var basis := muzzle.global_transform.basis
-	match muzzle_forward_axis:
-		"+X":
-			return basis.x
-		"-X":
-			return -basis.x
-		"+Y":
-			return basis.y
-		"-Y":
-			return -basis.y
-		"+Z":
-			return basis.z
-		_:
-			return -basis.z
+	var fire_dir := projectile_spawner.spawn_and_fire(self, bullet_scene, muzzle, muzzle_forward_axis, shooter)
+	if fire_dir.length_squared() > 0.000001:
+		emit_signal("fired", muzzle.global_transform.origin, fire_dir)
 
 	
+ 

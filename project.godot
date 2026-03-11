@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="ProjectInertia0.03"
-run/main_scene="uid://x4kqwwikodk3"
+run/main_scene="res://scenes/TitleScreen.tscn"
 config/features=PackedStringArray("4.6", "Mobile")
 config/icon="res://icon.svg"
 

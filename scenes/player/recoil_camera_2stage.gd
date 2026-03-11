@@ -16,6 +16,7 @@ extends Node3D
 
 
 @export var follow_speed := 18.0  #higher value = faster camera movement
+@export var aim_follow_speed := 60.0 #higher value = tighter stage2 lock while aiming
 @export var rot_speed := 16.0 #how quickly the camera rotates to match the sight when aiming
 @export var snap_distance := 3.0  # snap if gun moves too far in 1 tick
 
@@ -24,6 +25,22 @@ extends Node3D
 @export var fov_lerp_speed := 10.0
 
 @export var remove_roll_in_aim := true
+@export var stage1_follow_translation_only := true
+@export var stage1_orbit_on_fire := true
+@export var stage1_orbit_blend_speed := 6.0
+@export var stage1_fire_target_distance := 140.0
+@export_flags_3d_physics var stage1_fire_target_mask := 1
+@export var stage1_collision_avoidance := true
+@export_flags_3d_physics var stage1_collision_mask := 1
+@export var stage1_collision_margin := 0.2
+@export var stage1_pitch_on_fire := true
+@export var stage1_max_pitch_deg := 28.0
+@export var stage1_keep_gun_in_zone := true
+@export var stage1_zone_center := Vector2(0.5, 0.36)
+@export var stage1_zone_size := Vector2(0.18, 0.12)
+@export var stage1_zone_yaw_correction_speed := 2.8
+@export var stage1_zone_pitch_correction_speed := 3.8
+@export var stage1_zone_center_pull := 0.9
 
 var cam: Camera3D
 var gun: RigidBody3D
@@ -35,6 +52,11 @@ var muzzle_marker: Marker3D
 var authored_basis: Basis
 var authored_rotation: Vector3
 var is_aiming := false
+var stage1_world_offset := Vector3.ZERO
+var stage1_target_offset := Vector3.ZERO
+var stage1_target_yaw := 0.0
+var stage1_target_pitch := 0.0
+var stage1_has_target_yaw := false
 
 func _ready() -> void:
 	# Resolve gun/player path (accept either `gun_path` or legacy `player_path`)
@@ -90,8 +112,20 @@ func _ready() -> void:
 	# lock in authored rotation at start
 	authored_basis = global_transform.basis
 	authored_rotation = global_rotation
+	if gun != null and follow_marker != null:
+		stage1_world_offset = follow_marker.global_transform.origin - gun.global_transform.origin
+	elif gun != null:
+		stage1_world_offset = global_transform.origin - gun.global_transform.origin
+	stage1_target_offset = stage1_world_offset
+	stage1_target_yaw = authored_rotation.y
+	stage1_target_pitch = authored_rotation.x
 	if cam != null:
 		cam.fov = normal_fov
+
+	if gun != null and gun.has_signal("fired"):
+		var shot_callback := Callable(self, "_on_gun_fired")
+		if not gun.is_connected("fired", shot_callback):
+			gun.connect("fired", shot_callback)
 
 	# warn if critical nodes are missing
 	if gun == null:
@@ -108,8 +142,14 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	is_aiming = Input.is_action_pressed("slow_time")
 
-	var target_anchor: Node3D = _get_stage_target_anchor(is_aiming)
-	var target_pos := target_anchor.global_transform.origin
+	if not is_aiming and stage1_follow_translation_only and gun != null:
+		var offset_t := 1.0 - exp(-stage1_orbit_blend_speed * delta)
+		stage1_world_offset = stage1_world_offset.lerp(stage1_target_offset, offset_t)
+		_apply_stage1_zone_correction(delta)
+
+	var target_pos := _get_stage_target_position(is_aiming)
+	if not is_aiming:
+		target_pos = _resolve_stage1_collision_target(target_pos)
 	
 	#Position follow with snap projection
 	if global_transform.origin.distance_to(target_pos) > snap_distance:
@@ -117,7 +157,8 @@ func _physics_process(delta: float) -> void:
 		global_transform.origin = target_pos
 	else:
 		#smoothly move toward target position
-		var t := 1.0 - exp(-follow_speed * delta)
+		var active_follow_speed := aim_follow_speed if is_aiming else follow_speed
+		var t := 1.0 - exp(-active_follow_speed * delta)
 		global_transform.origin = global_transform.origin.lerp(target_pos, t)
 
 	# rotation behaviour
@@ -149,21 +190,173 @@ func _get_stage_target_anchor(aiming: bool) -> Node3D:
 			return gun
 	return self
 
+func _get_stage_target_position(aiming: bool) -> Vector3:
+	if not aiming and stage1_follow_translation_only and gun != null:
+		return gun.global_transform.origin + stage1_world_offset
+	return _get_stage_target_anchor(aiming).global_transform.origin
+
+
+func _resolve_stage1_collision_target(target_pos: Vector3) -> Vector3:
+	if not stage1_collision_avoidance:
+		return target_pos
+
+	var anchor_node := _get_stage_target_anchor(false)
+	if anchor_node == null:
+		return target_pos
+
+	var from := anchor_node.global_transform.origin
+	var to := target_pos
+	var segment := to - from
+	if segment.length_squared() < 0.000001:
+		return target_pos
+
+	var query := PhysicsRayQueryParameters3D.create(from, to)
+	query.collision_mask = stage1_collision_mask
+	var exclude_nodes: Array = [self]
+	if gun != null:
+		exclude_nodes.append(gun)
+	if cam != null:
+		exclude_nodes.append(cam)
+	query.exclude = exclude_nodes
+
+	var hit := get_world_3d().direct_space_state.intersect_ray(query)
+	if hit.is_empty():
+		return target_pos
+
+	var dir := segment.normalized()
+	var hit_position: Vector3 = hit["position"] as Vector3
+	var safe: Vector3 = hit_position - dir * stage1_collision_margin
+	var projected := (safe - from).dot(dir)
+	if projected < 0.05:
+		safe = from + dir * 0.05
+	return safe
+
+
+func _on_gun_fired(muzzle_origin: Vector3, fire_direction: Vector3) -> void:
+	if not stage1_orbit_on_fire:
+		return
+	if gun == null:
+		return
+	if fire_direction.length_squared() < 0.000001:
+		return
+
+	var hit_target := _get_stage1_fire_target(muzzle_origin, fire_direction.normalized())
+	var look_dir := (hit_target - gun.global_transform.origin).normalized()
+	if look_dir.length_squared() < 0.000001:
+		return
+
+	var current_offset := stage1_target_offset
+	if current_offset.length_squared() < 0.000001:
+		current_offset = stage1_world_offset
+	if current_offset.length_squared() < 0.000001:
+		current_offset = Vector3(0.0, 1.2, 2.8)
+
+	var current_height := current_offset.dot(Vector3.UP)
+	var horizontal_offset := current_offset - Vector3.UP * current_height
+	var horizontal_radius := horizontal_offset.length()
+	if horizontal_radius < 0.05:
+		horizontal_radius = 2.6
+
+	var desired_flat := -Vector3(look_dir.x, 0.0, look_dir.z)
+	if desired_flat.length_squared() < 0.000001:
+		desired_flat = horizontal_offset.normalized() if horizontal_offset.length_squared() > 0.000001 else Vector3.BACK
+	desired_flat = desired_flat.normalized()
+	stage1_target_yaw = atan2(-look_dir.x, -look_dir.z)
+	if stage1_pitch_on_fire:
+		stage1_target_pitch = -asin(clamp(look_dir.y, -1.0, 1.0))
+		var max_pitch := deg_to_rad(stage1_max_pitch_deg)
+		stage1_target_pitch = clamp(stage1_target_pitch, -max_pitch, max_pitch)
+	stage1_has_target_yaw = true
+
+	stage1_target_offset = desired_flat * horizontal_radius + Vector3.UP * current_height
+
+
+func _get_stage1_fire_target(muzzle_origin: Vector3, fire_direction: Vector3) -> Vector3:
+	var from := muzzle_origin
+	var to := muzzle_origin + fire_direction * stage1_fire_target_distance
+
+	var query := PhysicsRayQueryParameters3D.create(from, to)
+	query.collision_mask = stage1_fire_target_mask
+	if gun != null:
+		query.exclude = [gun]
+
+	var hit := get_world_3d().direct_space_state.intersect_ray(query)
+	if hit.is_empty():
+		return to
+	return hit["position"]
+
 func _restore_authoured_rotation(delta: float) -> void:
 		var rt := 1.0 - exp(-rot_speed * delta)
 		var current_rot := global_rotation
+		var target_rot := authored_rotation
+		if stage1_orbit_on_fire and stage1_has_target_yaw:
+			target_rot.y = stage1_target_yaw
+			if stage1_pitch_on_fire:
+				target_rot.x = stage1_target_pitch
 		global_rotation = Vector3(
-			lerp_angle(current_rot.x, authored_rotation.x, rt),
-			lerp_angle(current_rot.y, authored_rotation.y, rt),
-			lerp_angle(current_rot.z, authored_rotation.z, rt)
+			lerp_angle(current_rot.x, target_rot.x, rt),
+			lerp_angle(current_rot.y, target_rot.y, rt),
+			lerp_angle(current_rot.z, target_rot.z, rt)
 		)
+
+func _apply_stage1_zone_correction(delta: float) -> void:
+	if not stage1_keep_gun_in_zone:
+		return
+	if not stage1_orbit_on_fire:
+		return
+	if not stage1_has_target_yaw:
+		return
+	if cam == null or gun == null:
+		return
+	if cam.is_position_behind(gun.global_transform.origin):
+		return
+
+	var viewport_rect := cam.get_viewport().get_visible_rect()
+	var viewport_size := viewport_rect.size
+	if viewport_size.x <= 1.0 or viewport_size.y <= 1.0:
+		return
+
+	var zone_size := Vector2(clamp(stage1_zone_size.x, 0.05, 1.0), clamp(stage1_zone_size.y, 0.05, 1.0))
+	var zone_center := Vector2(clamp(stage1_zone_center.x, 0.0, 1.0), clamp(stage1_zone_center.y, 0.0, 1.0))
+	var half_zone := zone_size * 0.5
+	var zone_min := zone_center - half_zone
+	var zone_max := zone_center + half_zone
+
+	var gun_screen := cam.unproject_position(gun.global_transform.origin)
+	var screen_norm := Vector2(gun_screen.x / viewport_size.x, gun_screen.y / viewport_size.y)
+
+	var error_x := 0.0
+	if screen_norm.x < zone_min.x:
+		error_x = screen_norm.x - zone_min.x
+	elif screen_norm.x > zone_max.x:
+		error_x = screen_norm.x - zone_max.x
+	else:
+		error_x = (screen_norm.x - zone_center.x) * stage1_zone_center_pull
+
+	var error_y := 0.0
+	if screen_norm.y < zone_min.y:
+		error_y = screen_norm.y - zone_min.y
+	elif screen_norm.y > zone_max.y:
+		error_y = screen_norm.y - zone_max.y
+	else:
+		error_y = (screen_norm.y - zone_center.y) * stage1_zone_center_pull
+
+	if abs(error_x) > 0.0001:
+		stage1_target_yaw += -error_x * stage1_zone_yaw_correction_speed * delta
+
+	if stage1_pitch_on_fire and abs(error_y) > 0.0001:
+		stage1_target_pitch += -error_y * stage1_zone_pitch_correction_speed * delta
+		var max_pitch := deg_to_rad(stage1_max_pitch_deg)
+		stage1_target_pitch = clamp(stage1_target_pitch, -max_pitch, max_pitch)
 
    
 func _aim_rotation_(delta: float) -> void:
 	# always face gun-forward while orbiting to stage 2 anchor position
 	var desired_basis: Basis
 
-	if muzzle_marker != null:
+	if cam_aim_marker != null:
+		desired_basis = cam_aim_marker.global_transform.basis
+	elif muzzle_marker != null:
 		desired_basis = muzzle_marker.global_transform.basis
 	elif gun != null:
 		desired_basis = gun.global_transform.basis
@@ -177,25 +370,12 @@ func _aim_rotation_(delta: float) -> void:
 		desired_basis = _basis_without_roll(desired_basis)
 
 	var rt := 1.0 - exp(-rot_speed * delta)
-	var forward := (-desired_basis.z).normalized()
-	if forward.length_squared() < 0.000001:
-		return
-
-	var up_axis := Vector3.UP
-	if abs(forward.dot(up_axis)) > 0.999:
-		up_axis = Vector3.FORWARD
-
-	var desired_transform := global_transform.looking_at(
-		global_transform.origin + forward,
-		up_axis
-	)
-	var desired_rot := desired_transform.basis.get_euler()
-	var current_rot := global_rotation
-	global_rotation = Vector3(
-		lerp_angle(current_rot.x, desired_rot.x, rt),
-		lerp_angle(current_rot.y, desired_rot.y, rt),
-		0.0 if remove_roll_in_aim else lerp_angle(current_rot.z, desired_rot.z, rt)
-	)
+	var current_basis := global_transform.basis.orthonormalized()
+	var target_basis := desired_basis.orthonormalized()
+	var current_q := current_basis.get_rotation_quaternion()
+	var target_q := target_basis.get_rotation_quaternion()
+	var blended_q := current_q.slerp(target_q, rt)
+	global_transform = Transform3D(Basis(blended_q), global_transform.origin)
 
 func _basis_without_roll(b: Basis) -> Basis:
 	#Build a basis from forward + world up to eliminate roll

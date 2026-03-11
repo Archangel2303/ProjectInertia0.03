@@ -5,7 +5,34 @@
 
 [node name="PlayerGunwithcam" type="Node3D" unique_id=2023833259]
 
+[node name="camera follow stage 1 marker" type="Marker3D" parent="." unique_id=1650318049]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.86400586, 2.7461152)
+
+[node name="Camera Rig" type="Node3D" parent="." unique_id=768805096]
+top_level = true
+script = ExtResource("3_recoil")
+cam_path = NodePath("SpringArm3D/Camera3D")
+camera_path = NodePath("SpringArm3D/Camera3D")
+follow_marker_path = NodePath("../camera follow stage 1 marker")
+cam_aim_path = NodePath("../PlayerGun/camera follow stage 2")
+sight_path = NodePath("../PlayerGun/Sight2")
+muzzle_path = NodePath("../PlayerGun/camera follow stage 2")
+aim_follow_speed = 68.0
+rot_speed = 18.0
+remove_roll_in_aim = false
+
+[node name="SpringArm3D" type="SpringArm3D" parent="Camera Rig" unique_id=98548028]
+
+[node name="Camera3D" type="Camera3D" parent="Camera Rig/SpringArm3D" unique_id=1427126429]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.01872468, 0.86550426, 2.7411351)
+
 [node name="PlayerGun" parent="." unique_id=49404378 instance=ExtResource("1_1gijn")]
+fire_spin_impulse = 0.0
+recoil_force = 24.0
+upward_recoil_force = 16.0
+pitch_impulse = 4.0
+backspin_impulse = -0.5
+backspin_falloff_damping = 1.8
 
 [node name="Sight2" type="Marker3D" parent="PlayerGun" unique_id=1462523811]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.032668024, -1.1594155)
@@ -14,23 +41,3 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.032668024, -1.1594155)
 
 [node name="camera follow stage 2" type="Marker3D" parent="PlayerGun" unique_id=70711440]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.19067961, 0.35765013)
-
-[node name="Camera Rig" type="Node3D" parent="." unique_id=768805096]
-top_level = true
-script = ExtResource("3_recoil")
-cam_path = NodePath("SpringArm3D/Camera3D")
-camera_path = NodePath("SpringArm3D/Camera3D")
-gun_path = NodePath("../PlayerGun")
-player_path = NodePath("../PlayerGun")
-follow_marker_path = NodePath("../camera follow stage 1 marker")
-cam_aim_path = NodePath("../PlayerGun/camera follow stage 2")
-sight_path = NodePath("../PlayerGun/Sight2")
-muzzle_path = NodePath("../PlayerGun/Sight2")
-
-[node name="SpringArm3D" type="SpringArm3D" parent="Camera Rig" unique_id=98548028]
-
-[node name="Camera3D" type="Camera3D" parent="Camera Rig/SpringArm3D" unique_id=1427126429]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.01872468, 0.86550426, 2.7411351)
-
-[node name="camera follow stage 1 marker" type="Marker3D" parent="." unique_id=1650318049]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.86400586, 2.7461152)

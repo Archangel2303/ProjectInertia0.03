@@ -58,7 +58,8 @@ blend_shape_mode = 0
 shadow_mesh = SubResource("ArrayMesh_ow035")
 
 [node name="Bullet01" type="RigidBody3D" unique_id=722390975]
-collision_layer = 2
+collision_layer = 3
+collision_mask = 3
 continuous_cd = true
 contact_monitor = true
 max_contacts_reported = 8
