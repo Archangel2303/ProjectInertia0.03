@@ -33,7 +33,7 @@ const GunGravityArmer = preload("res://scripts/gun_gravity_armer.gd")
 @export var upward_recoil_force := 1.5
 
 # Post-shot translational energy tail so movement decays over time instead of stopping abruptly.
-@export var recoil_energy_falloff_time := 0.22
+@export var recoil_energy_falloff_time := 0.25
 @export var recoil_energy_falloff_strength := 20.0
 @export var recoil_energy_falloff_curve := 1.25
 
@@ -60,12 +60,18 @@ const GunGravityArmer = preload("res://scripts/gun_gravity_armer.gd")
 # Higher values make backspin settle faster back into passive spin control.
 @export var backspin_falloff_damping := 2.2
 
+# Short post-shot window that resists wall-impact counter-spin so recoil remains controllable
+# in tight spaces.
+@export var backspin_protection_time := 0.18
+@export var backspin_min_after_fire := 1.1
+@export var backspin_collision_cancel_resistance := 0.72
+
 # Bullet spawn configuration
 @export var bullet_scene: PackedScene = preload("res://scenes/Bullet/Bullet01.tscn")
 @export var muzzle_node: Marker3D
 @export_enum("+X", "-X", "+Y", "-Y", "+Z", "-Z") var muzzle_forward_axis: String = "-Z"
 @export var enable_gravity_after_first_shot := true
-@export var gravity_scale_after_first_shot := 0.5
+@export var gravity_scale_after_first_shot := 0.8
 @onready var muzzle: Marker3D = muzzle_node if muzzle_node != null else get_node_or_null("Muzzle") as Marker3D
 
 #-------State-------
@@ -73,6 +79,7 @@ const GunGravityArmer = preload("res://scripts/gun_gravity_armer.gd")
 var passive_spin_direction := 1
 var fire_queued := false
 var bullet_spawn_queued := false
+var backspin_protection_time_left := 0.0
 
 var spin_controller := GunSpinController.new()
 var recoil_controller := GunRecoilController.new()
@@ -98,9 +105,27 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		backspin_falloff_damping
 	)
 
+	if backspin_protection_time_left > 0.0:
+		backspin_protection_time_left = maxf(0.0, backspin_protection_time_left - state.step)
+		spin_controller.protect_backspin_component(
+			state,
+			passive_spin_axis_mode,
+			-signf(backspin_impulse),
+			backspin_min_after_fire,
+			backspin_collision_cancel_resistance
+		)
+
 	if fire_queued:
 		fire_queued = false
 		_apply_fire_impulses(state.transform.basis)
+		backspin_protection_time_left = maxf(0.0, backspin_protection_time)
+		spin_controller.protect_backspin_component(
+			state,
+			passive_spin_axis_mode,
+			-signf(backspin_impulse),
+			backspin_min_after_fire,
+			backspin_collision_cancel_resistance
+		)
 		bullet_spawn_queued = true
 		passive_spin_direction *= -1
 
@@ -115,7 +140,7 @@ func _physics_process(delta: float) -> void:
 
 	if bullet_spawn_queued:
 		bullet_spawn_queued = false
-		var shooter := get_parent() as CollisionObject3D
+		var shooter := self as CollisionObject3D
 		_spawn_and_fire(shooter)
 
 func _input(event): #function to handle input events

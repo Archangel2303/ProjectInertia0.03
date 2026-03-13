@@ -31,8 +31,8 @@ fire_spin_impulse = 0.0
 recoil_force = 24.0
 upward_recoil_force = 16.0
 pitch_impulse = 4.0
-backspin_impulse = -0.5
-backspin_falloff_damping = 1.8
+backspin_impulse = -1.0
+backspin_falloff_damping = 1.6
 
 [node name="Sight2" type="Marker3D" parent="PlayerGun" unique_id=1462523811]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.032668024, -1.1594155)

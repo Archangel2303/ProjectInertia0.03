@@ -19,9 +19,12 @@ func spawn_and_fire(
 		owner.get_tree().get_root().add_child(bullet)
 
 	bullet.global_transform = muzzle.global_transform
+	var owner_body := owner as CollisionObject3D
 	if shooter:
 		bullet.add_collision_exception_with(shooter)
-		bullet.shooter = shooter
+	if owner_body != null and owner_body != shooter:
+		bullet.add_collision_exception_with(owner_body)
+	bullet.shooter = shooter if shooter != null else owner_body
 
 	var dir := _get_muzzle_forward(muzzle, muzzle_forward_axis).normalized()
 	var up := muzzle.global_transform.basis.y.normalized()

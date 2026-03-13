@@ -31,7 +31,7 @@ extends Node3D
 @export var stage1_fire_target_distance := 140.0
 @export_flags_3d_physics var stage1_fire_target_mask := 1
 @export var stage1_collision_avoidance := true
-@export_flags_3d_physics var stage1_collision_mask := 1
+@export_flags_3d_physics var stage1_collision_mask := 15
 @export var stage1_collision_margin := 0.2
 @export var stage1_pitch_on_fire := true
 @export var stage1_max_pitch_deg := 28.0
@@ -41,6 +41,9 @@ extends Node3D
 @export var stage1_zone_yaw_correction_speed := 2.8
 @export var stage1_zone_pitch_correction_speed := 3.8
 @export var stage1_zone_center_pull := 0.9
+@export var stage1_target_smooth_speed := 16.0
+@export var stage1_max_reposition_speed := 18.0
+@export var stage1_max_snap_distance := 1.25
 
 var cam: Camera3D
 var gun: RigidBody3D
@@ -57,6 +60,8 @@ var stage1_target_offset := Vector3.ZERO
 var stage1_target_yaw := 0.0
 var stage1_target_pitch := 0.0
 var stage1_has_target_yaw := false
+var stage1_smoothed_target_pos := Vector3.ZERO
+var stage1_target_initialized := false
 
 func _ready() -> void:
 	# Resolve gun/player path (accept either `gun_path` or legacy `player_path`)
@@ -119,6 +124,8 @@ func _ready() -> void:
 	stage1_target_offset = stage1_world_offset
 	stage1_target_yaw = authored_rotation.y
 	stage1_target_pitch = authored_rotation.x
+	stage1_smoothed_target_pos = global_transform.origin
+	stage1_target_initialized = true
 	if cam != null:
 		cam.fov = normal_fov
 
@@ -150,16 +157,34 @@ func _physics_process(delta: float) -> void:
 	var target_pos := _get_stage_target_position(is_aiming)
 	if not is_aiming:
 		target_pos = _resolve_stage1_collision_target(target_pos)
+		if not stage1_target_initialized:
+			stage1_smoothed_target_pos = target_pos
+			stage1_target_initialized = true
+		var stage1_target_t := 1.0 - exp(-stage1_target_smooth_speed * delta)
+		stage1_smoothed_target_pos = stage1_smoothed_target_pos.lerp(target_pos, stage1_target_t)
+		target_pos = stage1_smoothed_target_pos
 	
 	#Position follow with snap projection
-	if global_transform.origin.distance_to(target_pos) > snap_distance:
-		#snap if gun moves too far in 1 tick (prevents extreme warping)
+	if is_aiming and global_transform.origin.distance_to(target_pos) > snap_distance:
+		# snap during aim only; stage-1 uses capped movement to avoid distortion spikes.
 		global_transform.origin = target_pos
 	else:
 		#smoothly move toward target position
 		var active_follow_speed := aim_follow_speed if is_aiming else follow_speed
 		var t := 1.0 - exp(-active_follow_speed * delta)
-		global_transform.origin = global_transform.origin.lerp(target_pos, t)
+		var desired_origin := global_transform.origin.lerp(target_pos, t)
+		if not is_aiming:
+			var from: Vector3 = global_transform.origin
+			var move: Vector3 = desired_origin - from
+			var max_step: float = stage1_max_reposition_speed * delta
+			if max_step > 0.0 and move.length() > max_step:
+				desired_origin = from + move.normalized() * max_step
+			if from.distance_to(target_pos) > stage1_max_snap_distance:
+				var snap_cap: float = minf(from.distance_to(target_pos), max_step)
+				if snap_cap > 0.0:
+					desired_origin = from + (target_pos - from).normalized() * snap_cap
+			desired_origin = _resolve_stage1_collision_target(desired_origin)
+		global_transform.origin = desired_origin
 
 	# rotation behaviour
 	if is_aiming:
