@@ -54,7 +54,8 @@ const GunGravityArmer = preload("res://scripts/gun_gravity_armer.gd")
 @export var backspin_impulse := 2.5
 
 # Optional moment arm for a supplemental off-center backspin impulse.
-@export var backspin_lever := 0.18
+# Set to 0.0 for pure torque-driven backspin around the body COM.
+@export var backspin_lever := 0.0
 
 # Damping rate for shot-time backspin axis only.
 # Higher values make backspin settle faster back into passive spin control.
@@ -89,7 +90,9 @@ var gravity_armer := GunGravityArmer.new()
 func _ready() -> void:
 	gravity_armer.configure(enable_gravity_after_first_shot, gravity_scale_after_first_shot)
 	gravity_armer.reset(self, 0.0)
-	# Assumes RigidBody3D center_of_mass_mode is Custom and center_of_mass is Vector3.ZERO.
+	# Ensure recoil/passive spin pivot is the gun's local origin.
+	center_of_mass_mode = RigidBody3D.CENTER_OF_MASS_MODE_CUSTOM
+	center_of_mass = Vector3.ZERO
 	linear_damp = recoil_recovery_damp
 	linear_velocity = Vector3.ZERO
 	angular_velocity = Vector3.ZERO

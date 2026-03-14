@@ -42,8 +42,10 @@ extends Node3D
 @export var stage1_zone_pitch_correction_speed := 3.8
 @export var stage1_zone_center_pull := 0.9
 @export var stage1_target_smooth_speed := 16.0
-@export var stage1_max_reposition_speed := 18.0
+@export var stage1_max_reposition_speed := 25.0
 @export var stage1_max_snap_distance := 1.25
+@export var stage1_velocity_response := 10.0
+@export var stage1_velocity_damping := 12.0
 
 var cam: Camera3D
 var gun: RigidBody3D
@@ -62,6 +64,9 @@ var stage1_target_pitch := 0.0
 var stage1_has_target_yaw := false
 var stage1_smoothed_target_pos := Vector3.ZERO
 var stage1_target_initialized := false
+var stage1_motion_velocity := Vector3.ZERO
+
+const STAGE1_MIN_ORBIT_RADIUS := 0.35
 
 func _ready() -> void:
 	# Resolve gun/player path (accept either `gun_path` or legacy `player_path`)
@@ -151,39 +156,75 @@ func _physics_process(delta: float) -> void:
 
 	if not is_aiming and stage1_follow_translation_only and gun != null:
 		var offset_t := 1.0 - exp(-stage1_orbit_blend_speed * delta)
-		stage1_world_offset = stage1_world_offset.lerp(stage1_target_offset, offset_t)
+		# Orbit in cylindrical space so stage-1 reposition arcs around the gun.
+		var current_height := stage1_world_offset.y
+		var target_height := stage1_target_offset.y
+
+		var current_flat := Vector2(stage1_world_offset.x, stage1_world_offset.z)
+		var target_flat := Vector2(stage1_target_offset.x, stage1_target_offset.z)
+
+		var current_radius := maxf(current_flat.length(), STAGE1_MIN_ORBIT_RADIUS)
+		var target_radius := maxf(target_flat.length(), STAGE1_MIN_ORBIT_RADIUS)
+
+		var current_angle := atan2(current_flat.x, current_flat.y)
+		if current_flat.length_squared() < 0.000001:
+			current_angle = atan2(target_flat.x, target_flat.y)
+
+		var target_angle := atan2(target_flat.x, target_flat.y)
+		if target_flat.length_squared() < 0.000001:
+			target_angle = current_angle
+
+		var orbit_angle := lerp_angle(current_angle, target_angle, offset_t)
+		var orbit_radius := lerpf(current_radius, target_radius, offset_t)
+		var orbit_height := lerpf(current_height, target_height, offset_t)
+		var orbit_flat := Vector2(sin(orbit_angle), cos(orbit_angle)) * orbit_radius
+
+		stage1_world_offset = Vector3(orbit_flat.x, orbit_height, orbit_flat.y)
 		_apply_stage1_zone_correction(delta)
 
 	var target_pos := _get_stage_target_position(is_aiming)
 	if not is_aiming:
 		target_pos = _resolve_stage1_collision_target(target_pos)
-		if not stage1_target_initialized:
-			stage1_smoothed_target_pos = target_pos
-			stage1_target_initialized = true
-		var stage1_target_t := 1.0 - exp(-stage1_target_smooth_speed * delta)
-		stage1_smoothed_target_pos = stage1_smoothed_target_pos.lerp(target_pos, stage1_target_t)
-		target_pos = stage1_smoothed_target_pos
+		if not (stage1_follow_translation_only and gun != null):
+			if not stage1_target_initialized:
+				stage1_smoothed_target_pos = target_pos
+				stage1_target_initialized = true
+			var stage1_target_t := 1.0 - exp(-stage1_target_smooth_speed * delta)
+			stage1_smoothed_target_pos = stage1_smoothed_target_pos.lerp(target_pos, stage1_target_t)
+			target_pos = stage1_smoothed_target_pos
 	
 	#Position follow with snap projection
 	if is_aiming and global_transform.origin.distance_to(target_pos) > snap_distance:
 		# snap during aim only; stage-1 uses capped movement to avoid distortion spikes.
 		global_transform.origin = target_pos
+		stage1_motion_velocity = Vector3.ZERO
 	else:
 		#smoothly move toward target position
 		var active_follow_speed := aim_follow_speed if is_aiming else follow_speed
 		var t := 1.0 - exp(-active_follow_speed * delta)
 		var desired_origin := global_transform.origin.lerp(target_pos, t)
 		if not is_aiming:
-			var from: Vector3 = global_transform.origin
-			var move: Vector3 = desired_origin - from
-			var max_step: float = stage1_max_reposition_speed * delta
-			if max_step > 0.0 and move.length() > max_step:
-				desired_origin = from + move.normalized() * max_step
-			if from.distance_to(target_pos) > stage1_max_snap_distance:
-				var snap_cap: float = minf(from.distance_to(target_pos), max_step)
-				if snap_cap > 0.0:
-					desired_origin = from + (target_pos - from).normalized() * snap_cap
-			desired_origin = _resolve_stage1_collision_target(desired_origin)
+			if stage1_follow_translation_only and gun != null:
+				# In stage-1 translation mode, follow the orbit-driven target directly so
+				# large retargets move around the gun instead of cutting through it.
+				desired_origin = target_pos
+				stage1_motion_velocity = Vector3.ZERO
+			else:
+				var from: Vector3 = global_transform.origin
+				var to_target: Vector3 = target_pos - from
+				var vel_t := 1.0 - exp(-stage1_velocity_response * delta)
+				var target_velocity := to_target * stage1_velocity_response
+				stage1_motion_velocity = stage1_motion_velocity.lerp(target_velocity, vel_t)
+				var damp_t := 1.0 - exp(-stage1_velocity_damping * delta)
+				stage1_motion_velocity = stage1_motion_velocity.lerp(Vector3.ZERO, damp_t)
+				if stage1_max_reposition_speed > 0.0:
+					stage1_motion_velocity = stage1_motion_velocity.limit_length(stage1_max_reposition_speed)
+				desired_origin = from + stage1_motion_velocity * delta
+				if to_target.length() < 0.02:
+					stage1_motion_velocity = stage1_motion_velocity.lerp(Vector3.ZERO, damp_t)
+				desired_origin = _resolve_stage1_collision_target(desired_origin)
+		else:
+			stage1_motion_velocity = Vector3.ZERO
 		global_transform.origin = desired_origin
 
 	# rotation behaviour

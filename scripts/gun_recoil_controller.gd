@@ -44,8 +44,9 @@ func apply_fire_impulses(
 	body.apply_impulse(-forward * pitch_impulse, pitch_offset)
 
 	body.apply_torque_impulse(-right * backspin_impulse)
-	var backspin_offset := up * backspin_lever
-	body.apply_impulse(forward * (backspin_impulse * 0.35), backspin_offset)
+	if absf(backspin_lever) > 0.0001:
+		var backspin_offset := up * backspin_lever
+		body.apply_impulse(forward * (backspin_impulse * 0.35), backspin_offset)
 
 
 func apply_recoil_falloff(

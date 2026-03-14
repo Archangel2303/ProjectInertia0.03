@@ -15,6 +15,7 @@ points = PackedVector3Array(-10.447313, 7.092947, 0.9602555, -10.447313, 7.09294
 
 [node name="PlayerGun" type="RigidBody3D" unique_id=49404378 node_paths=PackedStringArray("muzzle_node")]
 center_of_mass_mode = 1
+center_of_mass = Vector3(0, 0, 0)
 physics_material_override = SubResource("PhysicsMaterial_bouncy_gun")
 script = ExtResource("1_0gxly")
 recoil_force = 6.0

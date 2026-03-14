@@ -17,9 +17,17 @@ follow_marker_path = NodePath("../camera follow stage 1 marker")
 cam_aim_path = NodePath("../PlayerGun/camera follow stage 2")
 sight_path = NodePath("../PlayerGun/Sight2")
 muzzle_path = NodePath("../PlayerGun/camera follow stage 2")
+follow_speed = 10.0
 aim_follow_speed = 68.0
-rot_speed = 18.0
+rot_speed = 12.0
 remove_roll_in_aim = false
+stage1_orbit_blend_speed = 2.8
+stage1_zone_yaw_correction_speed = 1.9
+stage1_zone_pitch_correction_speed = 2.5
+stage1_target_smooth_speed = 8.0
+stage1_max_reposition_speed = 11.0
+stage1_velocity_response = 6.0
+stage1_velocity_damping = 5.0
 
 [node name="SpringArm3D" type="SpringArm3D" parent="Camera Rig" unique_id=98548028]
 
