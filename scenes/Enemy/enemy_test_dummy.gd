@@ -36,9 +36,9 @@ func _get_multiplier_for_hit(hit_type: String) -> float:
 		return torso_multiplier
 	return limb_multiplier
 
-func apply_damage(amount: int, hit_type: String = "torso") -> void:
+func apply_damage(amount: int, hit_type: String = "torso") -> bool:
 	if amount <= 0:
-		return
+		return false
 
 	var scaled_damage := float(amount) * _get_multiplier_for_hit(hit_type)
 
@@ -56,8 +56,15 @@ func apply_damage(amount: int, hit_type: String = "torso") -> void:
 
 	if despawn_on_any_hit:
 		queue_free()
-		return
+		if gamemanager != null and gamemanager.has_method("register_kill"):
+			gamemanager.register_kill(hit_type)
+		return true
 
 	if health <= 0:
 		print("DUMMY DEAD")
 		queue_free()
+		if gamemanager != null and gamemanager.has_method("register_kill"):
+			gamemanager.register_kill(hit_type)
+		return true
+
+	return false

@@ -30,6 +30,17 @@ var bullet_trail_options: Array[String] = ["Default Trail", "Tracer", "Neon", "S
 
 func _ready() -> void:
 	_cache_cosmetic_options()
+	var requested := ""
+	if gamemanager != null and gamemanager.has_method("consume_pending_title_screen"):
+		requested = gamemanager.consume_pending_title_screen()
+
+	if requested == "main_menu":
+		_show_main_menu()
+		return
+	if requested == "world_select":
+		_show_world_select()
+		return
+
 	_show_title_screen()
 
 
@@ -187,11 +198,29 @@ func _show_level_select(world_name: String, world_path: String) -> void:
 		return
 
 	var first := true
-	for level in levels:
+	var previous_level_passed := true
+	for i in range(levels.size()):
+		var level: Dictionary = levels[i]
 		var level_name: String = level["name"]
 		var level_path: String = level["path"]
-		_add_menu_button(level_name, func() -> void: _start_level(level_path), first)
-		first = false
+
+		var progress := {"high_score": 0, "best_stars": 0, "passed": false}
+		if gamemanager != null and gamemanager.has_method("get_level_progress"):
+			progress = gamemanager.get_level_progress(level_path)
+
+		var best_stars := int(progress.get("best_stars", 0))
+		var high_score := int(progress.get("high_score", 0))
+		var is_unlocked := i == 0 or previous_level_passed
+		var label := "%s  |  %d★  |  HS %d" % [level_name, best_stars, high_score]
+
+		if is_unlocked:
+			_add_menu_button(label, func() -> void: _start_level(level_path), first)
+			first = false
+		else:
+			var locked := _add_menu_button("%s  |  LOCKED" % level_name, func() -> void: _set_notification("Clear the previous level with at least 1 star to unlock this level."), first)
+			locked.disabled = true
+
+		previous_level_passed = bool(progress.get("passed", false))
 
 	_add_menu_button("Return to World Select", _show_world_select)
 

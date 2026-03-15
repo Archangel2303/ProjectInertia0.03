@@ -4,6 +4,15 @@
 [ext_resource type="Script" uid="uid://dx61ja24yvaui" path="res://scenes/Levels/World 1/debug_hud.gd" id="2_wfsm5"]
 [ext_resource type="PackedScene" uid="uid://cotjyg87mxldd" path="res://scenes/Enemy/Enemy_TestDummy.tscn" id="3_8f0oq"]
 
+[sub_resource type="Environment" id="Environment_8f0oq"]
+glow_enabled = true
+glow_levels/1 = 0.71
+glow_levels/2 = 0.42
+glow_levels/3 = 0.46
+glow_levels/4 = 0.05
+glow_intensity = 1.2
+glow_bloom = 0.15
+
 [sub_resource type="BoxShape3D" id="BoxShape3D_kuvsi"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_wpc48"]
@@ -15,9 +24,11 @@
 [node name="FiringRange" type="Node3D" unique_id=584624916]
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1757781760]
+environment = SubResource("Environment_8f0oq")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=1646996789]
-transform = Transform3D(1, 0, 0, 0, -0.56600344, 0.8244029, 0, -0.8244029, -0.56600344, 0, 2.6566153, -1.857306)
+transform = Transform3D(1, 0, 0, 0, -0.56600344, 0.8244029, 0, -0.8244029, -0.56600344, 0, 7.3823957, -6.6419435)
+sky_mode = 1
 
 [node name="Floor" type="StaticBody3D" parent="." unique_id=1871802153 groups=["world"]]
 transform = Transform3D(8, 0, 0, 0, 8, 0, 0, 0, 8, 0, 0, 0)
@@ -84,16 +95,10 @@ offset_right = 470.0
 offset_bottom = 192.0
 
 [node name="PlayerGunwithcam" parent="." unique_id=2023833259 instance=ExtResource("2_8f0oq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8347964, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.7027764, 0)
 
 [node name="EnemyTestDummy" parent="." unique_id=466057592 instance=ExtResource("3_8f0oq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5821676, 0.08981432, -10.927132)
-
-[node name="EnemyTestDummy2" parent="." unique_id=821991845 instance=ExtResource("3_8f0oq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.7862453, 0.08981432, -5.849353)
-
-[node name="EnemyTestDummy3" parent="." unique_id=1443758086 instance=ExtResource("3_8f0oq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7.2611904, 0.08981432, 0.88372993)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.029220343, 0.08981432, -10.927132)
 
 [node name="EnemyTestDummy4" parent="." unique_id=415437669 instance=ExtResource("3_8f0oq")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.902371, 0.08981432, -2.3654068)
+transform = Transform3D(-0.99989533, 0, -0.014468316, 0, 1, 0, 0.014468316, 0, -0.99989533, -0.043909073, 0.08981432, 11.731268)

@@ -35,12 +35,15 @@ stage1_velocity_damping = 5.0
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.01872468, 0.86550426, 2.7411351)
 
 [node name="PlayerGun" parent="." unique_id=49404378 instance=ExtResource("1_1gijn")]
+collision_layer = 17
+spin_speed = 2.5
 fire_spin_impulse = 0.0
-recoil_force = 24.0
-upward_recoil_force = 16.0
+upward_recoil_force = 10.0
 pitch_impulse = 4.0
-backspin_impulse = -1.0
-backspin_falloff_damping = 1.6
+backspin_impulse = -3.5
+backspin_falloff_damping = 0.9
+backspin_collision_cancel_resistance = 1.0
+gravity_scale_after_first_shot = 0.825
 
 [node name="Sight2" type="Marker3D" parent="PlayerGun" unique_id=1462523811]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.032668024, -1.1594155)

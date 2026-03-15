@@ -39,7 +39,7 @@ const GunGravityArmer = preload("res://scripts/gun_gravity_armer.gd")
 
 # Extra linear damping for recoil settle. Higher values recover faster,
 # lower values let the gun drift longer after each shot.
-@export var recoil_recovery_damp := 2.0
+@export var recoil_recovery_damp := 0.55
 
 # Off-center recoil impulse magnitude used to create pitch (muzzle rise)
 # around the custom COM/origin.
@@ -65,7 +65,15 @@ const GunGravityArmer = preload("res://scripts/gun_gravity_armer.gd")
 # in tight spaces.
 @export var backspin_protection_time := 0.18
 @export var backspin_min_after_fire := 1.1
-@export var backspin_collision_cancel_resistance := 0.72
+@export var backspin_collision_cancel_resistance := 0.9
+
+# Rest-state roll correction so the gun settles right-side up before the next shot.
+@export var auto_upright_enabled := true
+@export var auto_upright_delay_after_fire := 0.5
+@export var auto_upright_linear_speed_threshold := 0.08
+@export var auto_upright_roll_gain := 11.0
+@export var auto_upright_roll_damping := 4.0
+@export var auto_upright_min_roll_error_deg := 6.0
 
 # Bullet spawn configuration
 @export var bullet_scene: PackedScene = preload("res://scenes/Bullet/Bullet01.tscn")
@@ -75,17 +83,27 @@ const GunGravityArmer = preload("res://scripts/gun_gravity_armer.gd")
 @export var gravity_scale_after_first_shot := 0.8
 @onready var muzzle: Marker3D = muzzle_node if muzzle_node != null else get_node_or_null("Muzzle") as Marker3D
 
+# Laser sight prediction
+@export var laser_sight_enabled := true
+@export var laser_max_distance := 220.0
+@export_flags_3d_physics var laser_collision_mask: int = 17
+@export var laser_color := Color(0.28, 1.0, 0.45, 1.0)
+
 #-------State-------
 
 var passive_spin_direction := 1
 var fire_queued := false
 var bullet_spawn_queued := false
 var backspin_protection_time_left := 0.0
+var auto_upright_cooldown_left := 0.0
 
 var spin_controller := GunSpinController.new()
 var recoil_controller := GunRecoilController.new()
 var projectile_spawner := GunProjectileSpawner.new()
 var gravity_armer := GunGravityArmer.new()
+var _laser_mesh_instance: MeshInstance3D = null
+var _laser_mesh := ImmediateMesh.new()
+var _laser_material := StandardMaterial3D.new()
 
 func _ready() -> void:
 	gravity_armer.configure(enable_gravity_after_first_shot, gravity_scale_after_first_shot)
@@ -96,8 +114,12 @@ func _ready() -> void:
 	linear_damp = recoil_recovery_damp
 	linear_velocity = Vector3.ZERO
 	angular_velocity = Vector3.ZERO
+	_setup_laser_sight()
 
 func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
+	if auto_upright_cooldown_left > 0.0:
+		auto_upright_cooldown_left = maxf(0.0, auto_upright_cooldown_left - state.step)
+
 	spin_controller.integrate_angular_velocity(
 		state,
 		passive_spin_axis_mode,
@@ -121,6 +143,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	if fire_queued:
 		fire_queued = false
 		_apply_fire_impulses(state.transform.basis)
+		gamemanager.register_shot_fired()
 		backspin_protection_time_left = maxf(0.0, backspin_protection_time)
 		spin_controller.protect_backspin_component(
 			state,
@@ -131,6 +154,9 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		)
 		bullet_spawn_queued = true
 		passive_spin_direction *= -1
+		auto_upright_cooldown_left = maxf(0.0, auto_upright_delay_after_fire)
+
+	_apply_auto_upright_roll(state)
 
 
 func _physics_process(delta: float) -> void:
@@ -145,6 +171,8 @@ func _physics_process(delta: float) -> void:
 		bullet_spawn_queued = false
 		var shooter := self as CollisionObject3D
 		_spawn_and_fire(shooter)
+
+	_update_laser_sight()
 
 func _input(event): #function to handle input events
 	if event.is_action_pressed("fire"):
@@ -179,6 +207,109 @@ func _spawn_and_fire(shooter: CollisionObject3D) -> void:
 	var fire_dir := projectile_spawner.spawn_and_fire(self, bullet_scene, muzzle, muzzle_forward_axis, shooter)
 	if fire_dir.length_squared() > 0.000001:
 		emit_signal("fired", muzzle.global_transform.origin, fire_dir)
+
+
+func _setup_laser_sight() -> void:
+	_laser_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_laser_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_laser_material.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	_laser_material.albedo_color = laser_color
+	_laser_material.emission_enabled = true
+	_laser_material.emission = laser_color
+	_laser_material.emission_energy_multiplier = 2.2
+	_laser_material.no_depth_test = true
+
+	_laser_mesh_instance = MeshInstance3D.new()
+	_laser_mesh_instance.name = "LaserSight"
+	_laser_mesh_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_laser_mesh_instance.mesh = _laser_mesh
+	add_child(_laser_mesh_instance)
+
+
+func _update_laser_sight() -> void:
+	if _laser_mesh_instance == null:
+		return
+	if not laser_sight_enabled or muzzle == null:
+		_laser_mesh_instance.visible = false
+		return
+
+	var origin := muzzle.global_transform.origin
+	var dir := _get_muzzle_forward(muzzle.global_transform.basis, muzzle_forward_axis).normalized()
+	if dir.length_squared() < 0.000001:
+		_laser_mesh_instance.visible = false
+		return
+
+	var cast_distance := maxf(0.5, laser_max_distance)
+	var target := origin + dir * cast_distance
+
+	var query := PhysicsRayQueryParameters3D.create(origin, target, laser_collision_mask, [get_rid()])
+	query.collide_with_areas = false
+	query.collide_with_bodies = true
+
+	var space_state := get_world_3d().direct_space_state
+	var hit := space_state.intersect_ray(query)
+	if not hit.is_empty():
+		target = hit.get("position", target)
+
+	_laser_mesh.clear_surfaces()
+	_laser_mesh.surface_begin(Mesh.PRIMITIVE_LINES, _laser_material)
+	_laser_mesh.surface_add_vertex(to_local(origin))
+	_laser_mesh.surface_add_vertex(to_local(target))
+	_laser_mesh.surface_end()
+	_laser_mesh_instance.visible = true
+
+
+func _get_muzzle_forward(muzzle_basis: Basis, axis_mode: String) -> Vector3:
+	match axis_mode:
+		"+X":
+			return muzzle_basis.x
+		"-X":
+			return -muzzle_basis.x
+		"+Y":
+			return muzzle_basis.y
+		"-Y":
+			return -muzzle_basis.y
+		"+Z":
+			return muzzle_basis.z
+		_:
+			return -muzzle_basis.z
+
+
+func _apply_auto_upright_roll(state: PhysicsDirectBodyState3D) -> void:
+	if not auto_upright_enabled:
+		return
+	if auto_upright_cooldown_left > 0.0:
+		return
+	if state.linear_velocity.length() > auto_upright_linear_speed_threshold:
+		return
+
+	var basis := state.transform.basis
+	var forward := (-basis.z).normalized()
+	if forward.length_squared() < 0.000001:
+		return
+
+	var world_up := Vector3.UP
+	var desired_up := world_up - forward * world_up.dot(forward)
+	if desired_up.length_squared() < 0.000001:
+		return
+	desired_up = desired_up.normalized()
+
+	var current_up := basis.y.normalized()
+	var current_up_flat := current_up - forward * current_up.dot(forward)
+	if current_up_flat.length_squared() < 0.000001:
+		return
+	current_up_flat = current_up_flat.normalized()
+
+	var sin_error := forward.dot(current_up_flat.cross(desired_up))
+	var cos_error := clampf(current_up_flat.dot(desired_up), -1.0, 1.0)
+	var roll_error := atan2(sin_error, cos_error)
+	var min_error_rad := deg_to_rad(maxf(0.0, auto_upright_min_roll_error_deg))
+	if absf(roll_error) < min_error_rad:
+		return
+
+	var roll_speed := state.angular_velocity.dot(forward)
+	var correction_accel := (-roll_error * auto_upright_roll_gain) - (roll_speed * auto_upright_roll_damping)
+	state.angular_velocity += forward * (correction_accel * state.step)
 
 	
  

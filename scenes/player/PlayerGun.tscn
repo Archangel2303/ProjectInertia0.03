@@ -4,8 +4,8 @@
 [ext_resource type="ArrayMesh" uid="uid://n6w6c4koxs5i" path="res://assets/visual/ImportedScenes/Magnum/Magnum_array_mesh.tres" id="2_maagb"]
 
 [sub_resource type="PhysicsMaterial" id="PhysicsMaterial_bouncy_gun"]
-friction = 0.05
-bounce = 0.68
+friction = 0.02
+bounce = 3.0
 
 [sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_pdviw"]
 points = PackedVector3Array(-0.69577026, 1.6068983, -0.86800957, 17.59231, 7.092947, 0.35081393, 18.200798, 6.4823713, 0.96037483, 18.811253, 1.6068983, -0.86800957, -0.69577026, 4.0454407, 1.5702342, -0.69577026, 5.263369, -1.4778689, 18.811253, 1.6068983, 0.96037483, 19.42171, 5.263369, -1.4778689, -0.69577026, 5.8728704, 0.96037483, -0.69577026, 1.6068983, 0.96037483, 19.42171, 5.263369, 1.5702342, 19.42171, 3.4359393, -1.4778689, 15.152455, 7.092947, -0.25844866, -0.69577026, 5.263369, 1.5702342, -0.69577026, 3.4359393, -1.4778689, -0.69577026, 5.8728704, -0.86800957, 19.42171, 4.0454407, 1.5702342, 18.200798, 6.4823713, -0.86800957, 19.42171, 2.2169366, 0.96037483, 19.42171, 5.8728704, -0.86800957, 12.106083, 6.4823713, 0.96037483, 12.106083, 6.4823713, -0.86800957, 15.152455, 7.092947, 0.35081393, 19.42171, 5.8728704, 0.96037483, 19.42171, 2.2169366, -0.86800957, 17.59231, 7.092947, -0.25844866)
@@ -16,6 +16,7 @@ points = PackedVector3Array(-10.447313, 7.092947, 0.9602555, -10.447313, 7.09294
 [node name="PlayerGun" type="RigidBody3D" unique_id=49404378 node_paths=PackedStringArray("muzzle_node")]
 center_of_mass_mode = 1
 center_of_mass = Vector3(0, 0, 0)
+collision_mask = 17
 physics_material_override = SubResource("PhysicsMaterial_bouncy_gun")
 script = ExtResource("1_0gxly")
 recoil_force = 6.0
