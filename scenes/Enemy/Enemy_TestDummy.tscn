@@ -178,6 +178,9 @@ shader_parameter/flicker_amount = 0.2
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_6ch2i"]
 
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_hb6n0"]
+height = 1.8125
+
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_8mm2x"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_n4bfa"]
@@ -212,7 +215,7 @@ mesh = SubResource("ArrayMesh_76v0i")
 surface_material_override/0 = SubResource("ShaderMaterial_6ch2i")
 
 [node name="BASE_Low Poly Man_1" type="MeshInstance3D" parent="." unique_id=1057445242]
-transform = Transform3D(1.25, 0, 0, 0, -5.4639237e-08, 1.25, 0, -1.25, -5.4639237e-08, 0, 0, 0)
+transform = Transform3D(1.015, 0, 0, 0, -4.436706e-08, 1.015, 0, -1.015, -4.436706e-08, 0, 0, 0)
 mesh = SubResource("ArrayMesh_76v0i")
 surface_material_override/0 = SubResource("ShaderMaterial_8mm2x")
 
@@ -234,10 +237,18 @@ shape = SubResource("CapsuleShape3D_psawk")
 transform = Transform3D(0.5, 0, 0, 0, 0.49217027, 0.08813867, 0, -0.08813867, 0.49217027, 0, 5.3108754, 0.41485733)
 shape = SubResource("CapsuleShape3D_6ch2i")
 
+[node name="CollisionShape3D4" type="CollisionShape3D" parent="HeadHitbox" unique_id=355440554]
+transform = Transform3D(0.5, 0, 0, 0, 0.5, 0, 0, 0, 0.5, 0, 4.8270326, 0.20977592)
+shape = SubResource("CapsuleShape3D_hb6n0")
+
 [node name="TorsoHitbox" type="Area3D" parent="." unique_id=873751608]
 collision_layer = 8
 collision_mask = 4
 script = ExtResource("2_hb6n0")
+
+[node name="CollisionShape3D5" type="CollisionShape3D" parent="TorsoHitbox" unique_id=2147273163]
+transform = Transform3D(-2.6226834e-08, -0.6, 0, 0.6, -2.6226834e-08, 0, 0, 0, 0.6, 0, 4.6097336, 0.20977592)
+shape = SubResource("CapsuleShape3D_hb6n0")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="TorsoHitbox" unique_id=40974630]
 transform = Transform3D(-3.4969112e-08, -0.8, 0, 0.8, -3.4969112e-08, 0, 0, 0, 0.8, 0, 4.3964124, 0.25313348)
