@@ -10,6 +10,13 @@ enum Screen {
 	SETTINGS
 }
 
+enum AppTier {
+	FREE,
+	PREMIUM
+}
+
+const MENU_PROFILE_PATH := "user://menu_profile.cfg"
+
 @export var levels_root_path := "res://scenes/Levels"
 @export_file("*.tscn") var fallback_level_scene := "res://scenes/Levels/World 1/FiringRange.tscn"
 
@@ -18,10 +25,21 @@ enum Screen {
 @onready var notification_label: Label = $Center/Panel/Margin/VBox/Notification
 @onready var content: VBoxContainer = $Center/Panel/Margin/VBox/Scroll/Content
 @onready var hint_label: Label = $Center/Panel/Margin/VBox/Hint
+@onready var banner_ad_panel: PanelContainer = $Center/Panel/Margin/VBox/BannerAdPlaceholder
+@onready var banner_ad_badge: Label = $Center/Panel/Margin/VBox/BannerAdPlaceholder/Margin/BannerRow/AdBadge
+@onready var banner_ad_button: Button = $Center/Panel/Margin/VBox/BannerAdPlaceholder/Margin/BannerRow/BannerButton
+@onready var banner_dismiss_button: Button = $Center/Panel/Margin/VBox/BannerAdPlaceholder/Margin/BannerRow/DismissButton
 
 var current_screen: Screen = Screen.TITLE
 var selected_world_path := ""
 var selected_world_name := ""
+var menu_banner_ads_enabled := true
+var app_tier: AppTier = AppTier.FREE
+var entitlement_source := "default"
+var _ad_rotation_index := 0
+var _ad_rotation_timer: Timer
+var _banner_popup: AcceptDialog
+var _dismissed_banner_screens: Dictionary = {}
 
 var gun_skin_options: Array[String] = []
 var bullet_skin_options: Array[String] = []
@@ -29,6 +47,9 @@ var bullet_trail_options: Array[String] = ["Default Trail", "Tracer", "Neon", "S
 
 
 func _ready() -> void:
+	_setup_banner_ad_placeholders()
+	_load_menu_profile()
+	_apply_entitlement_policy()
 	_cache_cosmetic_options()
 	var requested := ""
 	if gamemanager != null and gamemanager.has_method("consume_pending_title_screen"):
@@ -54,6 +75,219 @@ func _set_header(title: String, subtitle: String, hint: String = "") -> void:
 	menu_title.text = title
 	menu_subtitle.text = subtitle
 	hint_label.text = hint
+	_update_banner_ad_placeholder()
+
+
+func _update_banner_ad_placeholder() -> void:
+	if banner_ad_panel == null or banner_ad_button == null:
+		return
+	if _is_premium_user():
+		banner_ad_panel.visible = false
+		return
+
+	var screen_key := int(current_screen)
+	var dismissed := _can_dismiss_banner_ads() and bool(_dismissed_banner_screens.get(screen_key, false))
+	banner_ad_panel.visible = not dismissed
+	if dismissed:
+		return
+
+	if not menu_banner_ads_enabled:
+		banner_ad_button.text = "[ Banner Ads Disabled ]"
+		banner_ad_button.disabled = true
+		if banner_ad_badge != null:
+			banner_ad_badge.text = "OFF"
+		if banner_dismiss_button != null:
+			banner_dismiss_button.disabled = true
+		return
+
+	banner_ad_button.disabled = false
+	if banner_ad_badge != null:
+		banner_ad_badge.text = "AD"
+	if banner_dismiss_button != null:
+		banner_dismiss_button.disabled = not _can_dismiss_banner_ads()
+		banner_dismiss_button.tooltip_text = "Dismiss banner" if _can_dismiss_banner_ads() else "Free tier cannot dismiss banner ads"
+	banner_ad_button.text = _get_current_banner_copy()
+
+
+func _setup_banner_ad_placeholders() -> void:
+	if banner_ad_button != null:
+		banner_ad_button.pressed.connect(_on_banner_ad_pressed)
+	if banner_dismiss_button != null:
+		banner_dismiss_button.pressed.connect(_on_banner_dismiss_pressed)
+
+	_ad_rotation_timer = Timer.new()
+	_ad_rotation_timer.wait_time = 5.0
+	_ad_rotation_timer.one_shot = false
+	_ad_rotation_timer.autostart = true
+	_ad_rotation_timer.timeout.connect(_on_banner_ad_rotation_timeout)
+	add_child(_ad_rotation_timer)
+
+	_banner_popup = AcceptDialog.new()
+	_banner_popup.title = "Promo Placeholder"
+	add_child(_banner_popup)
+
+
+func _get_current_banner_copy() -> String:
+	var ads := _get_banner_ads_for_screen(current_screen)
+	if ads.is_empty():
+		return "[ Banner Ad Placeholder 320x50 ]"
+	var idx := posmod(_ad_rotation_index, ads.size())
+	return String(ads[idx])
+
+
+func _get_banner_ads_for_screen(screen: Screen) -> Array[String]:
+	match screen:
+		Screen.TITLE:
+			return [
+				"[ Banner Ad Placeholder | Welcome Bundle ]",
+				"[ Banner Ad Placeholder | Free Daily Credits ]",
+				"[ Banner Ad Placeholder | Starter Pack Offer ]"
+			]
+		Screen.MAIN_MENU:
+			return [
+				"[ Banner Ad Placeholder | New Weapon Skin Pack ]",
+				"[ Banner Ad Placeholder | 2x XP Weekend ]",
+				"[ Banner Ad Placeholder | Season Pass Preview ]"
+			]
+		Screen.PLAY_MENU:
+			return [
+				"[ Banner Ad Placeholder | Unlimited Endless Boost ]",
+				"[ Banner Ad Placeholder | Continue Token Bundle ]",
+				"[ Banner Ad Placeholder | Accuracy Training Pack ]"
+			]
+		Screen.WORLD_SELECT:
+			return [
+				"[ Banner Ad Placeholder | World Progress Booster ]",
+				"[ Banner Ad Placeholder | Bonus Star Offer ]",
+				"[ Banner Ad Placeholder | Map Reveal Bundle ]"
+			]
+		Screen.LEVEL_SELECT:
+			return [
+				"[ Banner Ad Placeholder | Score Multiplier Trial ]",
+				"[ Banner Ad Placeholder | Precision Challenge Pass ]",
+				"[ Banner Ad Placeholder | Weekly Milestone Reward ]"
+			]
+		Screen.GUN_LOCKER:
+			return [
+				"[ Banner Ad Placeholder | Cosmetic Crate Offer ]",
+				"[ Banner Ad Placeholder | Magnum Wrap Collection ]",
+				"[ Banner Ad Placeholder | Tracer Color Bundle ]"
+			]
+		Screen.SETTINGS:
+			return [
+				"[ Banner Ad Placeholder | Premium UI Theme ]",
+				"[ Banner Ad Placeholder | Profile Flair Pack ]",
+				"[ Banner Ad Placeholder | Soundtrack Sample ]"
+			]
+		_:
+			return ["[ Banner Ad Placeholder 320x50 ]"]
+
+
+func _on_banner_ad_rotation_timeout() -> void:
+	if _is_premium_user():
+		return
+	if not menu_banner_ads_enabled:
+		return
+	_ad_rotation_index += 1
+	_update_banner_ad_placeholder()
+
+
+func _on_banner_ad_pressed() -> void:
+	if _is_premium_user():
+		return
+	if not menu_banner_ads_enabled:
+		return
+	if _banner_popup == null:
+		return
+	_banner_popup.dialog_text = "Ad click simulation only.\n\nCurrent Creative:\n%s" % _get_current_banner_copy()
+	_banner_popup.popup_centered(Vector2i(460, 210))
+
+
+func _on_menu_banner_ads_toggled(enabled: bool) -> void:
+	menu_banner_ads_enabled = enabled
+	if enabled:
+		_dismissed_banner_screens.clear()
+	_apply_entitlement_policy()
+	_save_menu_profile()
+	if _ad_rotation_timer != null:
+		_ad_rotation_timer.paused = not menu_banner_ads_enabled
+	_update_banner_ad_placeholder()
+	_set_notification("Menu Banner Ads: %s" % ("On" if menu_banner_ads_enabled else "Off"))
+
+
+func _on_banner_dismiss_pressed() -> void:
+	if not _can_dismiss_banner_ads():
+		_set_notification("Free tier cannot dismiss banner ads.")
+		return
+	_dismissed_banner_screens[int(current_screen)] = true
+	_save_menu_profile()
+	_update_banner_ad_placeholder()
+
+
+func _load_menu_profile() -> void:
+	var cfg := ConfigFile.new()
+	if cfg.load(MENU_PROFILE_PATH) != OK:
+		app_tier = AppTier.PREMIUM if _build_is_premium() else AppTier.FREE
+		entitlement_source = "build"
+		menu_banner_ads_enabled = true
+		_dismissed_banner_screens = {}
+		_save_menu_profile()
+		return
+
+	var saved_premium := bool(cfg.get_value("entitlement", "premium_unlocked", false))
+	if _build_is_premium():
+		app_tier = AppTier.PREMIUM
+		entitlement_source = "build"
+	else:
+		app_tier = AppTier.PREMIUM if saved_premium else AppTier.FREE
+		entitlement_source = "save"
+
+	menu_banner_ads_enabled = bool(cfg.get_value("ads", "menu_banner_ads_enabled", true))
+	var saved_dismissed: Variant = cfg.get_value("ads", "dismissed_screens", {})
+	if saved_dismissed is Dictionary:
+		_dismissed_banner_screens = saved_dismissed
+	else:
+		_dismissed_banner_screens = {}
+
+
+func _save_menu_profile() -> void:
+	var cfg := ConfigFile.new()
+	cfg.set_value("entitlement", "premium_unlocked", _is_premium_user())
+	cfg.set_value("entitlement", "source", entitlement_source)
+	cfg.set_value("ads", "menu_banner_ads_enabled", menu_banner_ads_enabled)
+	cfg.set_value("ads", "dismissed_screens", _dismissed_banner_screens)
+	cfg.save(MENU_PROFILE_PATH)
+
+
+func _apply_entitlement_policy() -> void:
+	if _is_premium_user():
+		menu_banner_ads_enabled = false
+	else:
+		menu_banner_ads_enabled = true
+		_dismissed_banner_screens.clear()
+
+	if _ad_rotation_timer != null:
+		_ad_rotation_timer.paused = not menu_banner_ads_enabled
+
+
+func _build_is_premium() -> bool:
+	return OS.has_feature("premium") or OS.has_feature("adfree")
+
+
+func _is_premium_user() -> bool:
+	return app_tier == AppTier.PREMIUM
+
+
+func _can_dismiss_banner_ads() -> bool:
+	return _is_premium_user()
+
+
+func set_premium_entitlement(enabled: bool) -> void:
+	app_tier = AppTier.PREMIUM if enabled else AppTier.FREE
+	entitlement_source = "save"
+	_apply_entitlement_policy()
+	_save_menu_profile()
+	_update_banner_ad_placeholder()
 
 
 func _set_notification(message: String) -> void:
@@ -97,6 +331,14 @@ func _add_row(label_text: String, control: Control) -> void:
 	row.add_child(label)
 	row.add_child(control)
 	content.add_child(row)
+
+
+func _make_info_label(text: String) -> Label:
+	var label := Label.new()
+	label.custom_minimum_size = Vector2(240, 0)
+	label.text = text
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	return label
 
 
 func _make_checkbox(pressed: bool, callback: Callable) -> CheckBox:
@@ -290,6 +532,13 @@ func _show_settings() -> void:
 	_add_section_title("System")
 	_add_row("Confirm on Quit", _make_checkbox(true, func(on: bool) -> void: _set_notification("Confirm on Quit: %s" % ("On" if on else "Off"))))
 	_add_row("Background FPS", _make_options(["15", "30", "60"], 1, func(_i: int) -> void: _set_notification("Background FPS setting updated.")))
+	var tier_text := "Premium (Ad-Free)" if _is_premium_user() else "Free"
+	_add_row("App Tier", _make_info_label(tier_text))
+	_add_row("Entitlement Source", _make_info_label(entitlement_source.capitalize()))
+	if _is_premium_user():
+		_add_row("Menu Banner Ads", _make_info_label("Forced Off"))
+	else:
+		_add_row("Menu Banner Ads", _make_info_label("Forced On"))
 
 	_add_menu_button("Return to Main Menu", _show_main_menu, true)
 

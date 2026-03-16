@@ -29,6 +29,7 @@ var _last_scene_path := ""
 var _score_zero_game_over_triggered := false
 var _level_clear_processed := false
 var _current_level_reward_doubled := false
+var _ad_continue_used_this_level := false
 var _level_progress: Dictionary = {}
 var pending_title_screen: String = ""
 
@@ -100,6 +101,7 @@ func start_level(level_path: String) -> void:
 	_level_clear_processed = false
 	_score_zero_game_over_triggered = false
 	_current_level_reward_doubled = false
+	_ad_continue_used_this_level = false
 	set_state(GameState.PLAYING)
 	reset_run()
 	emit_signal("level_changed", current_level_path)
@@ -185,9 +187,12 @@ func watch_ad_continue_from_game_over() -> bool:
 		return false
 	if not _score_zero_game_over_triggered:
 		return false
+	if _ad_continue_used_this_level:
+		return false
 
 	score = max(score, ad_continue_score)
 	_score_zero_game_over_triggered = false
+	_ad_continue_used_this_level = true
 	set_state(GameState.PLAYING)
 	emit_signal("score_changed", score)
 	return true
@@ -293,12 +298,15 @@ func _check_score_fail_state() -> void:
 	_score_zero_game_over_triggered = true
 	stop_slow_time()
 	set_state(GameState.GAME_OVER)
+	var options: Array[String] = ["retry_level", "world_select", "main_menu"]
+	if not _ad_continue_used_this_level:
+		options.push_front("watch_ad_continue")
 	emit_signal("game_over_prompt_requested", {
 		"reason": "score_zero",
 		"title": "Out of Score",
 		"message": "Your score reached zero.",
 		"continue_score": ad_continue_score,
-		"options": ["watch_ad_continue", "retry_level", "world_select", "main_menu"]
+		"options": options
 	})
 
 
@@ -420,6 +428,7 @@ func _update_scene_context() -> void:
 		current_level_path = ""
 		_score_zero_game_over_triggered = false
 		_level_clear_processed = false
+		_ad_continue_used_this_level = false
 
 
 func _is_level_scene(path: String) -> bool:
@@ -438,13 +447,13 @@ func _get_next_level_path(level_path: String) -> String:
 	var levels: Array[String] = []
 	dir.list_dir_begin()
 	while true:
-		var name := dir.get_next()
-		if name == "":
+		var file_name := dir.get_next()
+		if file_name == "":
 			break
 		if dir.current_is_dir():
 			continue
-		if name.ends_with(".tscn"):
-			levels.append(name)
+		if file_name.ends_with(".tscn"):
+			levels.append(file_name)
 	dir.list_dir_end()
 
 	if levels.is_empty():

@@ -79,3 +79,36 @@ theme_override_constants/separation = 10
 layout_mode = 2
 text = "Enter/Space/LMB: Confirm   Esc: Back"
 horizontal_alignment = 1
+
+[node name="BannerAdPlaceholder" type="PanelContainer" parent="Center/Panel/Margin/VBox"]
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
+
+[node name="Margin" type="MarginContainer" parent="Center/Panel/Margin/VBox/BannerAdPlaceholder"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 8
+
+[node name="BannerRow" type="HBoxContainer" parent="Center/Panel/Margin/VBox/BannerAdPlaceholder/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="AdBadge" type="Label" parent="Center/Panel/Margin/VBox/BannerAdPlaceholder/Margin/BannerRow"]
+custom_minimum_size = Vector2(42, 34)
+layout_mode = 2
+text = "AD"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="BannerButton" type="Button" parent="Center/Panel/Margin/VBox/BannerAdPlaceholder/Margin/BannerRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "[ Banner Ad Placeholder 320x50 ]"
+
+[node name="DismissButton" type="Button" parent="Center/Panel/Margin/VBox/BannerAdPlaceholder/Margin/BannerRow"]
+custom_minimum_size = Vector2(34, 34)
+layout_mode = 2
+tooltip_text = "Dismiss banner"
+text = "X"
