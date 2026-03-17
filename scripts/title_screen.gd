@@ -4,6 +4,7 @@ enum Screen {
 	TITLE,
 	MAIN_MENU,
 	PLAY_MENU,
+	SHOP,
 	WORLD_SELECT,
 	LEVEL_SELECT,
 	GUN_LOCKER,
@@ -17,8 +18,31 @@ enum AppTier {
 
 const MENU_PROFILE_PATH := "user://menu_profile.cfg"
 
+# Preloads force these levels into exported builds where directory scanning can be incomplete.
+const WORLD_1_LEVEL_SCENES: Array[PackedScene] = [
+	preload("res://scenes/Levels/World 1/W1L01.tscn"),
+	preload("res://scenes/Levels/World 1/W1L02.tscn"),
+	preload("res://scenes/Levels/World 1/W1L03.tscn"),
+	preload("res://scenes/Levels/World 1/W1L04.tscn"),
+	preload("res://scenes/Levels/World 1/W1L05.tscn"),
+	preload("res://scenes/Levels/World 1/W1L06.tscn"),
+	preload("res://scenes/Levels/World 1/W1L07.tscn"),
+	preload("res://scenes/Levels/World 1/W1L08.tscn"),
+	preload("res://scenes/Levels/World 1/W1L09.tscn"),
+	preload("res://scenes/Levels/World 1/W1L10.tscn"),
+	preload("res://scenes/Levels/World 1/W1L11.tscn"),
+	preload("res://scenes/Levels/World 1/W1L12.tscn"),
+	preload("res://scenes/Levels/World 1/W1L13.tscn"),
+	preload("res://scenes/Levels/World 1/W1L14.tscn"),
+	preload("res://scenes/Levels/World 1/W1L15.tscn")
+]
+
+const WORLD_LEVEL_CATALOG := {
+	"World 1": WORLD_1_LEVEL_SCENES
+}
+
 @export var levels_root_path := "res://scenes/Levels"
-@export_file("*.tscn") var fallback_level_scene := "res://scenes/Levels/World 1/FiringRange.tscn"
+@export_file("*.tscn") var fallback_level_scene := "res://scenes/Levels/World 1/W1L01.tscn"
 
 @onready var menu_title: Label = $Center/Panel/Margin/VBox/MenuTitle
 @onready var menu_subtitle: Label = $Center/Panel/Margin/VBox/MenuSubtitle
@@ -43,7 +67,12 @@ var _dismissed_banner_screens: Dictionary = {}
 
 var gun_skin_options: Array[String] = []
 var bullet_skin_options: Array[String] = []
+var gun_skin_paths: Array[String] = []
+var bullet_skin_paths: Array[String] = []
 var bullet_trail_options: Array[String] = ["Default Trail", "Tracer", "Neon", "Smoke"]
+var selected_gun_skin_path := ""
+var selected_bullet_skin_path := ""
+var selected_bullet_trail := "Default Trail"
 
 
 func _ready() -> void:
@@ -51,6 +80,7 @@ func _ready() -> void:
 	_load_menu_profile()
 	_apply_entitlement_policy()
 	_cache_cosmetic_options()
+	_apply_selected_cosmetics_to_game_manager()
 	var requested := ""
 	if gamemanager != null and gamemanager.has_method("consume_pending_title_screen"):
 		requested = gamemanager.consume_pending_title_screen()
@@ -155,6 +185,12 @@ func _get_banner_ads_for_screen(screen: Screen) -> Array[String]:
 				"[ Banner Ad Placeholder | Continue Token Bundle ]",
 				"[ Banner Ad Placeholder | Accuracy Training Pack ]"
 			]
+		Screen.SHOP:
+			return [
+				"[ Banner Ad Placeholder | Featured Crate Bundle ]",
+				"[ Banner Ad Placeholder | Limited Time Currency Pack ]",
+				"[ Banner Ad Placeholder | Trail Color Mega Pack ]"
+			]
 		Screen.WORLD_SELECT:
 			return [
 				"[ Banner Ad Placeholder | World Progress Booster ]",
@@ -249,6 +285,10 @@ func _load_menu_profile() -> void:
 	else:
 		_dismissed_banner_screens = {}
 
+	selected_gun_skin_path = String(cfg.get_value("cosmetics", "gun_skin_path", ""))
+	selected_bullet_skin_path = String(cfg.get_value("cosmetics", "bullet_skin_path", ""))
+	selected_bullet_trail = String(cfg.get_value("cosmetics", "bullet_trail", bullet_trail_options[0]))
+
 
 func _save_menu_profile() -> void:
 	var cfg := ConfigFile.new()
@@ -256,6 +296,9 @@ func _save_menu_profile() -> void:
 	cfg.set_value("entitlement", "source", entitlement_source)
 	cfg.set_value("ads", "menu_banner_ads_enabled", menu_banner_ads_enabled)
 	cfg.set_value("ads", "dismissed_screens", _dismissed_banner_screens)
+	cfg.set_value("cosmetics", "gun_skin_path", selected_gun_skin_path)
+	cfg.set_value("cosmetics", "bullet_skin_path", selected_bullet_skin_path)
+	cfg.set_value("cosmetics", "bullet_trail", selected_bullet_trail)
 	cfg.save(MENU_PROFILE_PATH)
 
 
@@ -386,6 +429,7 @@ func _show_main_menu() -> void:
 	_set_notification("")
 
 	_add_menu_button("Play", _show_play_menu, true)
+	_add_menu_button("Shop", _show_shop)
 	_add_menu_button("Gun Locker (Cosmetic Hub)", _show_gun_locker)
 	_add_menu_button("Settings", _show_settings)
 	_add_menu_button("Quit", _quit_game)
@@ -400,6 +444,41 @@ func _show_play_menu() -> void:
 	_add_menu_button("World Select", _show_world_select, true)
 	_add_menu_button("Endless Mode", _start_endless_mode)
 	_add_menu_button("Return to Menu", _show_main_menu)
+
+
+func _show_shop() -> void:
+	current_screen = Screen.SHOP
+	_clear_content()
+	_set_header("Shop", "Spend credits on gameplay and cosmetics", "Esc: Back to Main Menu")
+	_set_notification("")
+
+	var balance_label := Label.new()
+	balance_label.text = "Credits: %d" % _get_shop_balance()
+	balance_label.add_theme_font_size_override("font_size", 24)
+	content.add_child(balance_label)
+
+	_add_section_title("Featured")
+	_add_shop_item_button("Neon Trail Unlock", "trail_neon_unlock", 300, balance_label, true)
+	_add_shop_item_button("Smoke Trail Unlock", "trail_smoke_unlock", 300, balance_label)
+	_add_shop_item_button("Gun Test Skin Bundle", "gun_skin_bundle_test", 450, balance_label)
+	_add_shop_item_button("Bullet Test Skin Bundle", "bullet_skin_bundle_test", 450, balance_label)
+	_add_shop_item_button("Starter Credits Pack (+600)", "credits_pack_small", 250, balance_label)
+
+	_add_section_title("Daily")
+	var daily_button := _add_menu_button("Claim Free Daily Credits (+200)", func() -> void:
+		var result := _claim_daily_credits_from_shop(200)
+		if bool(result.get("ok", false)):
+			balance_label.text = "Credits: %d" % int(result.get("balance", _get_shop_balance()))
+			_set_notification("Claimed +%d credits." % int(result.get("amount", 0)))
+			_show_shop()
+		else:
+			_set_notification("Daily credits already claimed today.")
+	)
+	if _daily_claim_already_used_today():
+		daily_button.disabled = true
+		daily_button.text = "Daily Credits Claimed"
+
+	_add_menu_button("Return to Main Menu", _show_main_menu)
 
 
 func _show_world_select() -> void:
@@ -475,19 +554,57 @@ func _show_gun_locker() -> void:
 
 	_add_section_title("Cosmetic Selection")
 
-	var gun_skin_picker := _make_options(gun_skin_options, 0, func(index: int) -> void: _set_notification("Gun Skin: %s" % gun_skin_options[index]))
+	var gun_skin_picker := _make_options(gun_skin_options, _get_skin_option_index(gun_skin_paths, selected_gun_skin_path), func(index: int) -> void:
+		var requested_path := _get_skin_path_from_option_index(gun_skin_paths, index)
+		if _is_gun_skin_available_for_player(requested_path):
+			selected_gun_skin_path = requested_path
+		else:
+			_set_notification("That gun skin is locked. Unlock it in Shop.")
+			_show_gun_locker()
+			return
+		_apply_selected_cosmetics_to_game_manager()
+		_save_menu_profile()
+		_set_notification("Gun Skin: %s" % _display_name_for_skin_path(selected_gun_skin_path, "Default Gun Skin"))
+	)
 	_add_row("Gun Skin", gun_skin_picker)
 
-	var bullet_skin_picker := _make_options(bullet_skin_options, 0, func(index: int) -> void: _set_notification("Bullet Skin: %s" % bullet_skin_options[index]))
+	var bullet_skin_picker := _make_options(bullet_skin_options, _get_skin_option_index(bullet_skin_paths, selected_bullet_skin_path), func(index: int) -> void:
+		var requested_path := _get_skin_path_from_option_index(bullet_skin_paths, index)
+		if _is_bullet_skin_available_for_player(requested_path):
+			selected_bullet_skin_path = requested_path
+		else:
+			_set_notification("That bullet skin is locked. Unlock it in Shop.")
+			_show_gun_locker()
+			return
+		_apply_selected_cosmetics_to_game_manager()
+		_save_menu_profile()
+		_set_notification("Bullet Skin: %s" % _display_name_for_skin_path(selected_bullet_skin_path, "Default Bullet Skin"))
+	)
 	_add_row("Bullet Skin", bullet_skin_picker)
 
-	var trail_picker := _make_options(bullet_trail_options, 0, func(index: int) -> void: _set_notification("Bullet Trail Skin: %s" % bullet_trail_options[index]))
+	var trail_picker := _make_options(bullet_trail_options, bullet_trail_options.find(selected_bullet_trail), func(index: int) -> void:
+		var requested_trail := bullet_trail_options[clampi(index, 0, bullet_trail_options.size() - 1)]
+		if _is_bullet_trail_available_for_player(requested_trail):
+			selected_bullet_trail = requested_trail
+		else:
+			selected_bullet_trail = bullet_trail_options[0]
+			_set_notification("%s is locked. Unlock it in Shop." % requested_trail)
+			_show_gun_locker()
+			return
+		_apply_selected_cosmetics_to_game_manager()
+		_save_menu_profile()
+		_set_notification("Bullet Trail Skin: %s" % selected_bullet_trail)
+	)
 	_add_row("Bullet Trail Skin", trail_picker)
 
 	_add_section_title("Preview")
 	var preview := Label.new()
 	preview.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	preview.text = "Preview updates in this hub as cosmetics are selected.\n(Integration to in-game materials can be added next.)"
+	preview.text = "Selected Gun: %s\nSelected Bullet: %s\nTrail: %s\n\nSkins now apply in-level on the gun mesh and spawned bullets." % [
+		_display_name_for_skin_path(selected_gun_skin_path, "Default Gun Skin"),
+		_display_name_for_skin_path(selected_bullet_skin_path, "Default Bullet Skin"),
+		selected_bullet_trail
+	]
 	content.add_child(preview)
 
 	_add_menu_button("Return to Main Menu", _show_main_menu, true)
@@ -606,6 +723,8 @@ func _go_back() -> void:
 			_show_title_screen()
 		Screen.PLAY_MENU:
 			_show_main_menu()
+		Screen.SHOP:
+			_show_main_menu()
 		Screen.WORLD_SELECT:
 			_show_play_menu()
 		Screen.LEVEL_SELECT:
@@ -625,20 +744,28 @@ func _quit_game() -> void:
 
 func _get_worlds() -> Array[Dictionary]:
 	var worlds: Array[Dictionary] = []
+	var seen: Dictionary = {}
 	var dir := DirAccess.open(levels_root_path)
-	if dir == null:
-		return worlds
+	if dir != null:
+		dir.list_dir_begin()
+		while true:
+			var entry_name := dir.get_next()
+			if entry_name.is_empty():
+				break
+			if entry_name.begins_with("."):
+				continue
+			if dir.current_is_dir():
+				seen[entry_name] = true
+				worlds.append({"name": entry_name, "path": "%s/%s" % [levels_root_path, entry_name]})
+		dir.list_dir_end()
 
-	dir.list_dir_begin()
-	while true:
-		var entry_name := dir.get_next()
-		if entry_name.is_empty():
-			break
-		if entry_name.begins_with("."):
+	for world_name in WORLD_LEVEL_CATALOG.keys():
+		if seen.has(world_name):
 			continue
-		if dir.current_is_dir():
-			worlds.append({"name": entry_name, "path": "%s/%s" % [levels_root_path, entry_name]})
-	dir.list_dir_end()
+		var paths := _get_catalog_level_paths_for_world_name(world_name)
+		if paths.is_empty():
+			continue
+		worlds.append({"name": world_name, "path": "%s/%s" % [levels_root_path, world_name]})
 
 	worlds.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return String(a["name"]) < String(b["name"]))
 	return worlds
@@ -647,35 +774,217 @@ func _get_worlds() -> Array[Dictionary]:
 func _get_levels_for_world(world_path: String) -> Array[Dictionary]:
 	var levels: Array[Dictionary] = []
 	var dir := DirAccess.open(world_path)
-	if dir == null:
-		return levels
+	if dir != null:
+		dir.list_dir_begin()
+		while true:
+			var file_name := dir.get_next()
+			if file_name.is_empty():
+				break
+			if dir.current_is_dir():
+				continue
+			if not file_name.ends_with(".tscn"):
+				continue
 
-	dir.list_dir_begin()
-	while true:
-		var file_name := dir.get_next()
-		if file_name.is_empty():
-			break
-		if dir.current_is_dir():
-			continue
-		if not file_name.ends_with(".tscn"):
-			continue
+			var level_name := file_name.trim_suffix(".tscn")
+			levels.append({"name": level_name, "path": "%s/%s" % [world_path, file_name]})
+		dir.list_dir_end()
 
-		var level_name := file_name.trim_suffix(".tscn")
-		levels.append({"name": level_name, "path": "%s/%s" % [world_path, file_name]})
-	dir.list_dir_end()
+	if levels.is_empty():
+		for level_path in _get_catalog_level_paths_for_world_name(world_path.get_file()):
+			var level_name := level_path.get_file().trim_suffix(".tscn")
+			levels.append({"name": level_name, "path": level_path})
 
 	levels.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return String(a["name"]) < String(b["name"]))
 	return levels
 
 
-func _cache_cosmetic_options() -> void:
-	gun_skin_options = _scan_files("res://assets/visual/magnum", ["png", "jpg", "jpeg"]) 
-	bullet_skin_options = _scan_files("res://assets/visual/Bullet", ["png", "jpg", "jpeg"]) 
+func _get_catalog_level_paths_for_world_name(world_name: String) -> Array[String]:
+	var result: Array[String] = []
+	if not WORLD_LEVEL_CATALOG.has(world_name):
+		return result
 
-	if gun_skin_options.is_empty():
-		gun_skin_options = ["Default Gun Skin"]
-	if bullet_skin_options.is_empty():
-		bullet_skin_options = ["Default Bullet Skin"]
+	for scene: PackedScene in WORLD_LEVEL_CATALOG[world_name]:
+		if scene == null:
+			continue
+		var path := scene.resource_path
+		if path.is_empty():
+			continue
+		if not ResourceLoader.exists(path):
+			continue
+		result.append(path)
+
+	result.sort()
+	return result
+
+
+func _cache_cosmetic_options() -> void:
+	var gun_files := _scan_files("res://assets/visual/magnum", ["png", "jpg", "jpeg"])
+	var bullet_files := _scan_files("res://assets/visual/Bullet", ["png", "jpg", "jpeg"])
+
+	gun_skin_paths.clear()
+	for file_name in gun_files:
+		gun_skin_paths.append("res://assets/visual/magnum/%s" % file_name)
+
+	bullet_skin_paths.clear()
+	for file_name in bullet_files:
+		bullet_skin_paths.append("res://assets/visual/Bullet/%s" % file_name)
+
+	gun_skin_options = ["Default Gun Skin"]
+	for path in gun_skin_paths:
+		gun_skin_options.append(_display_name_for_skin_path(path, "Default Gun Skin"))
+
+	bullet_skin_options = ["Default Bullet Skin"]
+	for path in bullet_skin_paths:
+		bullet_skin_options.append(_display_name_for_skin_path(path, "Default Bullet Skin"))
+
+	_sanitize_selected_cosmetics()
+
+
+func _sanitize_selected_cosmetics() -> void:
+	if not selected_gun_skin_path.is_empty() and not gun_skin_paths.has(selected_gun_skin_path):
+		selected_gun_skin_path = ""
+	if not _is_gun_skin_available_for_player(selected_gun_skin_path):
+		selected_gun_skin_path = ""
+	if not selected_bullet_skin_path.is_empty() and not bullet_skin_paths.has(selected_bullet_skin_path):
+		selected_bullet_skin_path = ""
+	if not _is_bullet_skin_available_for_player(selected_bullet_skin_path):
+		selected_bullet_skin_path = ""
+	if not bullet_trail_options.has(selected_bullet_trail):
+		selected_bullet_trail = bullet_trail_options[0]
+	if not _is_bullet_trail_available_for_player(selected_bullet_trail):
+		selected_bullet_trail = bullet_trail_options[0]
+
+
+func _display_name_for_skin_path(path: String, default_label: String) -> String:
+	if path.is_empty():
+		return default_label
+	return path.get_file().get_basename().replace("_", " ")
+
+
+func _get_skin_option_index(paths: Array[String], selected_path: String) -> int:
+	if selected_path.is_empty():
+		return 0
+	var idx := paths.find(selected_path)
+	if idx == -1:
+		return 0
+	return idx + 1
+
+
+func _get_skin_path_from_option_index(paths: Array[String], option_index: int) -> String:
+	if option_index <= 0:
+		return ""
+	var idx := option_index - 1
+	if idx < 0 or idx >= paths.size():
+		return ""
+	return paths[idx]
+
+
+func _apply_selected_cosmetics_to_game_manager() -> void:
+	if gamemanager == null:
+		return
+	if gamemanager.has_method("set_selected_cosmetics"):
+		gamemanager.set_selected_cosmetics(selected_gun_skin_path, selected_bullet_skin_path, selected_bullet_trail)
+
+
+func _add_shop_item_button(item_name: String, item_id: String, cost: int, balance_label: Label, focus := false) -> void:
+	var owned := _shop_item_owned(item_id)
+	var button := _add_menu_button(_format_shop_item_button_text(item_name, cost, owned), func() -> void:
+		if _shop_item_owned(item_id):
+			_set_notification("%s is already owned." % item_name)
+			return
+
+		var result := _purchase_shop_item(item_id, cost)
+		if not bool(result.get("ok", false)):
+			_set_notification("Not enough credits for %s." % item_name)
+			return
+
+		if item_id == "credits_pack_small":
+			if gamemanager != null and gamemanager.has_method("add_shop_currency"):
+				gamemanager.add_shop_currency(600)
+			result["balance"] = _get_shop_balance()
+
+		balance_label.text = "Credits: %d" % int(result.get("balance", _get_shop_balance()))
+		if item_id == "trail_neon_unlock":
+			_set_notification("Purchased Neon Trail. It is now selectable in Gun Locker.")
+		elif item_id == "trail_smoke_unlock":
+			_set_notification("Purchased Smoke Trail. It is now selectable in Gun Locker.")
+		elif item_id == "credits_pack_small":
+			_set_notification("Purchased Starter Credits Pack. +600 credits granted.")
+		elif item_id == "gun_skin_bundle_test":
+			_set_notification("Purchased Gun Test Skin Bundle. Test gun skins unlocked.")
+		elif item_id == "bullet_skin_bundle_test":
+			_set_notification("Purchased Bullet Test Skin Bundle. Test bullet skins unlocked.")
+		else:
+			_set_notification("Purchased %s." % item_name)
+		_show_shop()
+	, focus)
+	button.disabled = owned
+
+
+func _format_shop_item_button_text(item_name: String, cost: int, owned: bool) -> String:
+	if owned:
+		return "%s  |  OWNED" % item_name
+	return "%s  |  %d Credits" % [item_name, cost]
+
+
+func _get_shop_balance() -> int:
+	if gamemanager != null and gamemanager.has_method("get_shop_currency"):
+		return int(gamemanager.get_shop_currency())
+	return 0
+
+
+func _purchase_shop_item(item_id: String, cost: int) -> Dictionary:
+	if gamemanager == null or not gamemanager.has_method("purchase_shop_item"):
+		return {"ok": false, "reason": "shop_unavailable", "balance": 0}
+	var result: Variant = gamemanager.purchase_shop_item(item_id, cost)
+	if result is Dictionary:
+		return result
+	return {"ok": false, "reason": "shop_unavailable", "balance": _get_shop_balance()}
+
+
+func _shop_item_owned(item_id: String) -> bool:
+	if gamemanager == null or not gamemanager.has_method("has_shop_item"):
+		return false
+	return bool(gamemanager.has_shop_item(item_id))
+
+
+func _claim_daily_credits_from_shop(amount: int) -> Dictionary:
+	if gamemanager == null or not gamemanager.has_method("claim_daily_shop_credits"):
+		return {"ok": false, "reason": "shop_unavailable", "amount": 0, "balance": 0}
+	var result: Variant = gamemanager.claim_daily_shop_credits(amount)
+	if result is Dictionary:
+		return result
+	return {"ok": false, "reason": "shop_unavailable", "amount": 0, "balance": _get_shop_balance()}
+
+
+func _daily_claim_already_used_today() -> bool:
+	if gamemanager == null or not gamemanager.has_method("get_last_daily_claim_date"):
+		return false
+	return String(gamemanager.get_last_daily_claim_date()) == Time.get_date_string_from_system()
+
+
+func _is_bullet_trail_available_for_player(style: String) -> bool:
+	if style == "Default Trail":
+		return true
+	if gamemanager == null or not gamemanager.has_method("is_bullet_trail_unlocked"):
+		return style == "Tracer"
+	return bool(gamemanager.is_bullet_trail_unlocked(style))
+
+
+func _is_gun_skin_available_for_player(path: String) -> bool:
+	if path.is_empty():
+		return true
+	if gamemanager == null or not gamemanager.has_method("is_gun_skin_unlocked"):
+		return true
+	return bool(gamemanager.is_gun_skin_unlocked(path))
+
+
+func _is_bullet_skin_available_for_player(path: String) -> bool:
+	if path.is_empty():
+		return true
+	if gamemanager == null or not gamemanager.has_method("is_bullet_skin_unlocked"):
+		return true
+	return bool(gamemanager.is_bullet_skin_unlocked(path))
 
 
 func _scan_files(path: String, extensions: Array[String]) -> Array[String]:

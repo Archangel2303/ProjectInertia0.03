@@ -104,10 +104,14 @@ var gravity_armer := GunGravityArmer.new()
 var _laser_mesh_instance: MeshInstance3D = null
 var _laser_mesh := ImmediateMesh.new()
 var _laser_material := StandardMaterial3D.new()
+var _gun_skin_material: StandardMaterial3D = null
+
+@onready var gun_mesh: MeshInstance3D = get_node_or_null("MeshInstance3D") as MeshInstance3D
 
 func _ready() -> void:
 	gravity_armer.configure(enable_gravity_after_first_shot, gravity_scale_after_first_shot)
 	gravity_armer.reset(self, 0.0)
+	_apply_selected_gun_skin()
 	# Ensure recoil/passive spin pivot is the gun's local origin.
 	center_of_mass_mode = RigidBody3D.CENTER_OF_MASS_MODE_CUSTOM
 	center_of_mass = Vector3.ZERO
@@ -175,6 +179,15 @@ func _physics_process(delta: float) -> void:
 	_update_laser_sight()
 
 func _input(event): #function to handle input events
+	if gamemanager == null:
+		return
+	var is_playing := int(gamemanager.state) == int(gamemanager.GameState.PLAYING)
+	if get_tree().paused or not is_playing:
+		fire_queued = false
+		if event.is_action_released("slow_time") and gamemanager.is_slowing_time:
+			gamemanager.stop_slow_time()
+		return
+
 	if event.is_action_pressed("fire"):
 		fire_queued = true
 	
@@ -310,6 +323,31 @@ func _apply_auto_upright_roll(state: PhysicsDirectBodyState3D) -> void:
 	var roll_speed := state.angular_velocity.dot(forward)
 	var correction_accel := (-roll_error * auto_upright_roll_gain) - (roll_speed * auto_upright_roll_damping)
 	state.angular_velocity += forward * (correction_accel * state.step)
+
+
+func _apply_selected_gun_skin() -> void:
+	if gun_mesh == null:
+		return
+	if gamemanager == null or not gamemanager.has_method("get_selected_gun_skin_path"):
+		return
+
+	var texture_path: String = String(gamemanager.get_selected_gun_skin_path())
+	if texture_path.is_empty():
+		return
+
+	var skin_texture := load(texture_path) as Texture2D
+	if skin_texture == null:
+		return
+
+	if _gun_skin_material == null:
+		var base_material := gun_mesh.get_active_material(0)
+		if base_material is StandardMaterial3D:
+			_gun_skin_material = (base_material as StandardMaterial3D).duplicate() as StandardMaterial3D
+		else:
+			_gun_skin_material = StandardMaterial3D.new()
+
+	_gun_skin_material.albedo_texture = skin_texture
+	gun_mesh.set_surface_override_material(0, _gun_skin_material)
 
 	
  

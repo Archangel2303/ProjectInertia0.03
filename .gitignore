@@ -19,6 +19,10 @@ obj/
 
 # Exported files
 export_presets.cfg
+*.exe
+*.console.exe
+*.pck
+builds/
 # Godot 4+ specific ignores
 .godot/
 /android/

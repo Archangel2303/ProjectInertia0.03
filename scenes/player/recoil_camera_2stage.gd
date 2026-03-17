@@ -33,6 +33,10 @@ extends Node3D
 @export var stage1_collision_avoidance := true
 @export_flags_3d_physics var stage1_collision_mask := 15
 @export var stage1_collision_margin := 0.2
+@export var stage2_collision_avoidance := true
+@export_flags_3d_physics var stage2_collision_mask := 15
+@export var stage2_collision_margin := 0.16
+@export var stage2_min_anchor_distance := 0.05
 @export var stage1_pitch_on_fire := true
 @export var stage1_max_pitch_deg := 28.0
 @export var stage1_keep_gun_in_zone := true
@@ -224,6 +228,7 @@ func _physics_process(delta: float) -> void:
 					stage1_motion_velocity = stage1_motion_velocity.lerp(Vector3.ZERO, damp_t)
 				desired_origin = _resolve_stage1_collision_target(desired_origin)
 		else:
+			desired_origin = _resolve_stage2_collision_target(desired_origin)
 			stage1_motion_velocity = Vector3.ZERO
 		global_transform.origin = desired_origin
 
@@ -296,6 +301,50 @@ func _resolve_stage1_collision_target(target_pos: Vector3) -> Vector3:
 	if projected < 0.05:
 		safe = from + dir * 0.05
 	return safe
+
+
+func _resolve_stage2_collision_target(target_rig_pos: Vector3) -> Vector3:
+	if not stage2_collision_avoidance:
+		return target_rig_pos
+	if cam == null:
+		return target_rig_pos
+
+	var anchor_node := _get_stage_target_anchor(true)
+	if anchor_node == null:
+		return target_rig_pos
+
+	# Preserve current camera local relationship while solving collisions.
+	var cam_world_offset := cam.global_transform.origin - global_transform.origin
+	var desired_cam_pos := target_rig_pos + cam_world_offset
+	var anchor_pos := anchor_node.global_transform.origin
+	var segment := desired_cam_pos - anchor_pos
+	if segment.length_squared() < 0.000001:
+		return target_rig_pos
+
+	var query := PhysicsRayQueryParameters3D.create(anchor_pos, desired_cam_pos)
+	query.collision_mask = stage2_collision_mask
+	var exclude_nodes: Array = [self]
+	if gun != null:
+		exclude_nodes.append(gun)
+	if cam != null:
+		exclude_nodes.append(cam)
+	var spring_arm := cam.get_parent()
+	if spring_arm != null:
+		exclude_nodes.append(spring_arm)
+	query.exclude = exclude_nodes
+
+	var hit := get_world_3d().direct_space_state.intersect_ray(query)
+	if hit.is_empty():
+		return target_rig_pos
+
+	var dir := segment.normalized()
+	var hit_position: Vector3 = hit["position"] as Vector3
+	var safe_cam_pos := hit_position - dir * stage2_collision_margin
+	var projected := (safe_cam_pos - anchor_pos).dot(dir)
+	if projected < stage2_min_anchor_distance:
+		safe_cam_pos = anchor_pos + dir * stage2_min_anchor_distance
+
+	return safe_cam_pos - cam_world_offset
 
 
 func _on_gun_fired(muzzle_origin: Vector3, fire_direction: Vector3) -> void:

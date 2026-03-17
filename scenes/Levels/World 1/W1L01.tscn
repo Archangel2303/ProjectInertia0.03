@@ -31,12 +31,17 @@ glow_levels/2 = 0.42
 glow_levels/3 = 0.46
 glow_levels/4 = 0.05
 glow_intensity = 1.2
-glow_bloom = 0.15
+glow_bloom = 0.19
 fog_enabled = true
 fog_light_color = Color(0.42549214, 0.5741978, 0.65466434, 1)
 fog_sun_scatter = 0.1
 fog_density = 0.003
 volumetric_fog_enabled = true
+ssr_enabled = true
+ssr_max_steps = 128
+ssr_fade_in = 0.1
+ssr_fade_out = 20.0
+ssr_depth_tolerance = 0.25
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_kuvsi"]
 
@@ -79,6 +84,16 @@ shader_parameter/guaranteed_core_ratio = 0.35
 shader_parameter/core_albedo_add = 0.35
 shader_parameter/edge_glow = 3.0
 shader_parameter/fresnel_power = 4.0
+shader_parameter/chromatic_aberration_strength = 0.0012
+shader_parameter/chromatic_aberration_edge_start = 0.72
+shader_parameter/chromatic_aberration_intensity = 0.12
+shader_parameter/glitch_pulse_strength = 0.12
+shader_parameter/glitch_pulse_rate = 0.35
+shader_parameter/glitch_pulse_density = 0.03
+shader_parameter/glitch_pulse_speed = 1.4
+shader_parameter/floor_metallic = 0.07
+shader_parameter/floor_roughness = 0.28
+shader_parameter/floor_specular = 0.32
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_wfsm5"]
 
@@ -121,6 +136,13 @@ shader_parameter/guaranteed_core_ratio = 0.35
 shader_parameter/core_albedo_add = 0.35
 shader_parameter/edge_glow = 3.0
 shader_parameter/fresnel_power = 4.0
+shader_parameter/chromatic_aberration_strength = 0.0012
+shader_parameter/chromatic_aberration_edge_start = 0.72
+shader_parameter/chromatic_aberration_intensity = 0.12
+shader_parameter/glitch_pulse_strength = 0.12
+shader_parameter/glitch_pulse_rate = 0.35
+shader_parameter/glitch_pulse_density = 0.03
+shader_parameter/glitch_pulse_speed = 1.4
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_y27tw"]
 render_priority = 0
@@ -159,6 +181,13 @@ shader_parameter/guaranteed_core_ratio = 0.35
 shader_parameter/core_albedo_add = 0.35
 shader_parameter/edge_glow = 3.0
 shader_parameter/fresnel_power = 4.0
+shader_parameter/chromatic_aberration_strength = 0.0012
+shader_parameter/chromatic_aberration_edge_start = 0.72
+shader_parameter/chromatic_aberration_intensity = 0.12
+shader_parameter/glitch_pulse_strength = 0.12
+shader_parameter/glitch_pulse_rate = 0.35
+shader_parameter/glitch_pulse_density = 0.03
+shader_parameter/glitch_pulse_speed = 1.4
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_vb3rb"]
 render_priority = 0
@@ -197,6 +226,13 @@ shader_parameter/guaranteed_core_ratio = 0.35
 shader_parameter/core_albedo_add = 0.35
 shader_parameter/edge_glow = 3.0
 shader_parameter/fresnel_power = 4.0
+shader_parameter/chromatic_aberration_strength = 0.0012
+shader_parameter/chromatic_aberration_edge_start = 0.72
+shader_parameter/chromatic_aberration_intensity = 0.12
+shader_parameter/glitch_pulse_strength = 0.12
+shader_parameter/glitch_pulse_rate = 0.35
+shader_parameter/glitch_pulse_density = 0.03
+shader_parameter/glitch_pulse_speed = 1.4
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_bwsxe"]
 render_priority = 0
@@ -235,6 +271,13 @@ shader_parameter/guaranteed_core_ratio = 0.35
 shader_parameter/core_albedo_add = 0.35
 shader_parameter/edge_glow = 3.0
 shader_parameter/fresnel_power = 4.0
+shader_parameter/chromatic_aberration_strength = 0.0012
+shader_parameter/chromatic_aberration_edge_start = 0.72
+shader_parameter/chromatic_aberration_intensity = 0.12
+shader_parameter/glitch_pulse_strength = 0.12
+shader_parameter/glitch_pulse_rate = 0.35
+shader_parameter/glitch_pulse_density = 0.03
+shader_parameter/glitch_pulse_speed = 1.4
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_67aef"]
 render_priority = 0
@@ -273,6 +316,13 @@ shader_parameter/guaranteed_core_ratio = 0.35
 shader_parameter/core_albedo_add = 0.35
 shader_parameter/edge_glow = 3.0
 shader_parameter/fresnel_power = 4.0
+shader_parameter/chromatic_aberration_strength = 0.0012
+shader_parameter/chromatic_aberration_edge_start = 0.72
+shader_parameter/chromatic_aberration_intensity = 0.12
+shader_parameter/glitch_pulse_strength = 0.12
+shader_parameter/glitch_pulse_rate = 0.35
+shader_parameter/glitch_pulse_density = 0.03
+shader_parameter/glitch_pulse_speed = 1.4
 
 [node name="FiringRange" type="Node3D" unique_id=584624916]
 
@@ -283,6 +333,7 @@ environment = SubResource("Environment_8f0oq")
 transform = Transform3D(0.81915206, -0.57357645, -2.5071822e-08, 0, -4.371139e-08, 1, -0.57357645, -0.81915206, -3.5806274e-08, 0, 37.242725, -0.18707371)
 light_color = Color(0.7118637, 0.49509388, 0.64068556, 1)
 light_energy = 2.297
+light_specular = 0.08
 light_angular_distance = 0.5
 shadow_enabled = true
 shadow_reverse_cull_face = true

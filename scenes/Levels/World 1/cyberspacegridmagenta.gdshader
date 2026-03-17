@@ -2,6 +2,8 @@ shader_type spatial;
 
 render_mode unshaded, cull_back;
 
+uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_linear_mipmap;
+
 uniform vec3 grid_color : source_color = vec3(1.0, 0.0, 1.0);
 uniform vec3 core_color : source_color = vec3(1.0, 1.0, 1.0);
 uniform vec3 bg_color : source_color = vec3(0.01, 0.02, 0.05);
@@ -38,6 +40,13 @@ uniform float core_albedo_add = 0.35;
 
 uniform float edge_glow = 3.0;
 uniform float fresnel_power = 4.0;
+uniform float chromatic_aberration_strength = 0.0012;
+uniform float chromatic_aberration_edge_start = 0.72;
+uniform float chromatic_aberration_intensity = 0.12;
+uniform float glitch_pulse_strength = 0.12;
+uniform float glitch_pulse_rate = 0.35;
+uniform float glitch_pulse_density = 0.03;
+uniform float glitch_pulse_speed = 1.4;
 
 varying vec3 world_pos;
 varying vec3 world_normal;
@@ -78,6 +87,19 @@ vec4 grid_layers(vec2 world_uv, float width){
     return vec4(outer_line, core_line, hollow_mask, alias_risk);
 }
 
+float hash11(float p) {
+    p = fract(p * 0.1031);
+    p *= p + 33.33;
+    p *= p + p;
+    return fract(p);
+}
+
+float hash21(vec2 p) {
+    vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+    p3 += dot(p3, p3.yzx + 33.33);
+    return fract((p3.x + p3.y) * p3.z);
+}
+
 void fragment(){
     float fade_span = max(fade_end_distance - fade_start_distance, 0.001);
     float world_distance = distance(world_pos, CAMERA_POSITION_WORLD);
@@ -112,6 +134,15 @@ void fragment(){
     core_grid *= mix(1.0, alias_stability, 0.7);
     core_grid = max(core_grid, outer_grid * clamp(min_core_visibility, 0.0, 1.0));
 
+    // Sparse digital pulse: occasional line flicker keyed to world-space line regions.
+    float line_seed = hash21(floor(world_pos.xz * max(grid_scale, 0.001) * 0.5));
+    float pulse_tick = floor(TIME * max(glitch_pulse_rate, 0.01));
+    float pulse_gate = step(1.0 - clamp(glitch_pulse_density, 0.0, 1.0), hash11(line_seed * 431.73 + pulse_tick));
+    float pulse_wave = 0.5 + 0.5 * sin(TIME * max(glitch_pulse_speed, 0.01) * 12.0 + line_seed * 25.1327);
+    float glitch_gain = 1.0 + clamp(glitch_pulse_strength, 0.0, 2.0) * pulse_gate * pulse_wave;
+    outer_grid *= glitch_gain;
+    core_grid *= glitch_gain;
+
     // Tron-style edge highlight
     float fresnel = pow(clamp(1.0 - dot(normalize(NORMAL), normalize(VIEW)), 0.0, 1.0), fresnel_power);
 
@@ -135,4 +166,19 @@ void fragment(){
         edge_color * fresnel * edge_glow * line_mask;
 
     EMISSION = min(emission_color * hollow_kill, vec3(max(emission_peak_limit, 0.0)));
+
+    // Subtle edge-only chromatic fringe to reinforce the digital-sim look.
+    vec2 center_delta = SCREEN_UV - vec2(0.5);
+    float edge_radius = length(center_delta * 2.0);
+    float edge_mask = smoothstep(chromatic_aberration_edge_start, 1.0, edge_radius);
+    vec2 ca_dir = normalize(center_delta + vec2(0.0001, 0.0));
+    vec2 ca_offset = ca_dir * (chromatic_aberration_strength * edge_mask);
+    vec2 uv_r = clamp(SCREEN_UV + ca_offset, vec2(0.001), vec2(0.999));
+    vec2 uv_g = clamp(SCREEN_UV, vec2(0.001), vec2(0.999));
+    vec2 uv_b = clamp(SCREEN_UV - ca_offset, vec2(0.001), vec2(0.999));
+    vec3 ca_sample = vec3(texture(screen_texture, uv_r).r, texture(screen_texture, uv_g).g, texture(screen_texture, uv_b).b);
+    vec3 ca_tint = ca_sample - vec3(dot(ca_sample, vec3(0.3333)));
+    float ca_mix = edge_mask * chromatic_aberration_intensity;
+    ALBEDO = clamp(ALBEDO + ca_tint * ca_mix * 0.30, vec3(0.0), vec3(1.0));
+    EMISSION += ca_tint * ca_mix * 0.20;
 }

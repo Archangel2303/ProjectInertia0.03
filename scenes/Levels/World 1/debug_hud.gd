@@ -16,6 +16,8 @@ var _prompt_buttons: VBoxContainer
 
 
 func _ready() -> void:
+	# Keep HUD active during gameplay and while the scene tree is paused for prompt interaction.
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	_setup_prompt_ui()
 
 	if gamemanager == null:
@@ -66,6 +68,7 @@ func _on_state_changed(value: int) -> void:
 	_latest_state = value
 	if value == 0:
 		_hide_prompt()
+		_set_gameplay_paused(false)
 
 
 func _on_victory_prompt_requested(payload: Dictionary) -> void:
@@ -140,12 +143,21 @@ func _show_prompt() -> void:
 	_prompt_message_label.text = _prompt_message
 	_rebuild_prompt_buttons()
 	_prompt_panel.visible = true
+	_set_gameplay_paused(true)
 
 
 func _hide_prompt() -> void:
 	if _prompt_panel == null:
 		return
 	_prompt_panel.visible = false
+	_set_gameplay_paused(false)
+
+
+func _set_gameplay_paused(active: bool) -> void:
+	var tree := get_tree()
+	if tree == null:
+		return
+	tree.paused = active
 
 
 func _rebuild_prompt_buttons() -> void:
@@ -200,10 +212,13 @@ func _on_prompt_option_pressed(option_key: String) -> void:
 			if gamemanager.watch_ad_continue_from_game_over():
 				_hide_prompt()
 		"retry_level":
+			_set_gameplay_paused(false)
 			gamemanager.restart_level()
 		"world_select":
+			_set_gameplay_paused(false)
 			gamemanager.return_to_world_select()
 		"main_menu":
+			_set_gameplay_paused(false)
 			gamemanager.return_to_main_menu()
 		"watch_ad_double_rewards":
 			if gamemanager.watch_ad_double_victory_rewards():
@@ -213,6 +228,7 @@ func _on_prompt_option_pressed(option_key: String) -> void:
 				_prompt_message = "%s\nRewards doubled." % _prompt_message
 				_show_prompt()
 		"continue_next_level":
+			_set_gameplay_paused(false)
 			if not gamemanager.continue_to_next_level():
 				_prompt_message = "%s\nNo next level available in this world." % _prompt_message
 				_show_prompt()
