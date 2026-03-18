@@ -37,6 +37,17 @@ extends Node3D
 @export_flags_3d_physics var stage2_collision_mask := 15
 @export var stage2_collision_margin := 0.16
 @export var stage2_min_anchor_distance := 0.05
+@export var stage2_use_multi_probe := true
+@export var stage2_probe_vertical_offset := 0.12
+@export var stage2_probe_horizontal_offset := 0.08
+@export var stage2_collision_shrink_speed := 80.0
+@export var stage2_collision_release_speed := 12.0
+@export var stage2_collision_hysteresis := 0.03
+@export var stage2_disable_spring_arm_collision_while_aiming := true
+@export var stage2_contact_stabilization := true
+@export var stage2_contact_angvel_threshold := 1.2
+@export var stage2_contact_position_smooth := 14.0
+@export var stage2_contact_rotation_smooth := 8.0
 @export var stage1_pitch_on_fire := true
 @export var stage1_max_pitch_deg := 28.0
 @export var stage1_keep_gun_in_zone := true
@@ -69,6 +80,13 @@ var stage1_has_target_yaw := false
 var stage1_smoothed_target_pos := Vector3.ZERO
 var stage1_target_initialized := false
 var stage1_motion_velocity := Vector3.ZERO
+var stage2_smoothed_safe_dist := -1.0
+var stage2_smoothed_target_pos := Vector3.ZERO
+var stage2_target_pos_initialized := false
+var stage2_camera_local_offset := Vector3.ZERO
+var _spring_arm_node: SpringArm3D
+var _spring_arm_default_collision_mask := 0
+var _spring_arm_mask_cached := false
 
 const STAGE1_MIN_ORBIT_RADIUS := 0.35
 
@@ -91,6 +109,12 @@ func _ready() -> void:
 		cam = get_node_or_null(camera_path) as Camera3D
 	if cam == null:
 		cam = get_node_or_null("SpringArm3D/Camera3D") as Camera3D
+	if cam != null:
+		_spring_arm_node = cam.get_parent() as SpringArm3D
+		stage2_camera_local_offset = global_transform.basis.inverse() * (cam.global_transform.origin - global_transform.origin)
+		if _spring_arm_node != null:
+			_spring_arm_default_collision_mask = int(_spring_arm_node.collision_mask)
+			_spring_arm_mask_cached = true
 
 	# follow marker: if not provided, fall back to PlayerGun (or rig origin)
 	follow_marker = null
@@ -157,8 +181,12 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	is_aiming = Input.is_action_pressed("slow_time")
+	# Editor-side SpringArm tuning mode:
+	# disable runtime stage-2 spring-arm collision overrides so editor settings drive behavior.
+	# _update_stage2_spring_arm_collision_mode(is_aiming)
 
 	if not is_aiming and stage1_follow_translation_only and gun != null:
+		stage2_smoothed_safe_dist = -1.0
 		var offset_t := 1.0 - exp(-stage1_orbit_blend_speed * delta)
 		# Orbit in cylindrical space so stage-1 reposition arcs around the gun.
 		var current_height := stage1_world_offset.y
@@ -187,7 +215,12 @@ func _physics_process(delta: float) -> void:
 		_apply_stage1_zone_correction(delta)
 
 	var target_pos := _get_stage_target_position(is_aiming)
+	# Editor-side SpringArm tuning mode:
+	# disable runtime stage-2 stabilization to avoid fighting editor collision behavior.
+	# if is_aiming and stage2_contact_stabilization:
+	# 	target_pos = _get_stage2_stabilized_target_position(target_pos, delta)
 	if not is_aiming:
+		# stage2_target_pos_initialized = false
 		target_pos = _resolve_stage1_collision_target(target_pos)
 		if not (stage1_follow_translation_only and gun != null):
 			if not stage1_target_initialized:
@@ -199,7 +232,8 @@ func _physics_process(delta: float) -> void:
 	
 	#Position follow with snap projection
 	if is_aiming and global_transform.origin.distance_to(target_pos) > snap_distance:
-		# snap during aim only; stage-1 uses capped movement to avoid distortion spikes.
+		# Editor-side SpringArm tuning mode:
+		# bypass runtime stage-2 collision solver and use direct aim target.
 		global_transform.origin = target_pos
 		stage1_motion_velocity = Vector3.ZERO
 	else:
@@ -228,7 +262,9 @@ func _physics_process(delta: float) -> void:
 					stage1_motion_velocity = stage1_motion_velocity.lerp(Vector3.ZERO, damp_t)
 				desired_origin = _resolve_stage1_collision_target(desired_origin)
 		else:
-			desired_origin = _resolve_stage2_collision_target(desired_origin)
+			# Editor-side SpringArm tuning mode:
+			# bypass runtime stage-2 collision solver so SpringArm handles contact response.
+			desired_origin = desired_origin
 			stage1_motion_velocity = Vector3.ZERO
 		global_transform.origin = desired_origin
 
@@ -303,26 +339,38 @@ func _resolve_stage1_collision_target(target_pos: Vector3) -> Vector3:
 	return safe
 
 
-func _resolve_stage2_collision_target(target_rig_pos: Vector3) -> Vector3:
+func _resolve_stage2_collision_target(target_rig_pos: Vector3, delta: float) -> Vector3:
 	if not stage2_collision_avoidance:
+		stage2_smoothed_safe_dist = -1.0
 		return target_rig_pos
 	if cam == null:
+		stage2_smoothed_safe_dist = -1.0
 		return target_rig_pos
 
 	var anchor_node := _get_stage_target_anchor(true)
 	if anchor_node == null:
 		return target_rig_pos
 
-	# Preserve current camera local relationship while solving collisions.
-	var cam_world_offset := cam.global_transform.origin - global_transform.origin
+	# Use the authored camera offset relative to rig to avoid feedback jitter from dynamic spring-arm compression.
+	var cam_world_offset := global_transform.basis * stage2_camera_local_offset
 	var desired_cam_pos := target_rig_pos + cam_world_offset
 	var anchor_pos := anchor_node.global_transform.origin
 	var segment := desired_cam_pos - anchor_pos
 	if segment.length_squared() < 0.000001:
 		return target_rig_pos
+	var dir := segment.normalized()
+	var desired_dist := segment.length()
+	var safe_dist := desired_dist
 
-	var query := PhysicsRayQueryParameters3D.create(anchor_pos, desired_cam_pos)
-	query.collision_mask = stage2_collision_mask
+	var probe_offsets: Array[Vector3] = [Vector3.ZERO]
+	if stage2_use_multi_probe:
+		var probe_basis := anchor_node.global_transform.basis.orthonormalized()
+		if stage2_probe_vertical_offset > 0.0:
+			probe_offsets.append(probe_basis.y * stage2_probe_vertical_offset)
+		if stage2_probe_horizontal_offset > 0.0:
+			probe_offsets.append(probe_basis.x * stage2_probe_horizontal_offset)
+			probe_offsets.append(-probe_basis.x * stage2_probe_horizontal_offset)
+
 	var exclude_nodes: Array = [self]
 	if gun != null:
 		exclude_nodes.append(gun)
@@ -331,20 +379,78 @@ func _resolve_stage2_collision_target(target_rig_pos: Vector3) -> Vector3:
 	var spring_arm := cam.get_parent()
 	if spring_arm != null:
 		exclude_nodes.append(spring_arm)
-	query.exclude = exclude_nodes
 
-	var hit := get_world_3d().direct_space_state.intersect_ray(query)
-	if hit.is_empty():
+	for offset in probe_offsets:
+		var query := PhysicsRayQueryParameters3D.create(anchor_pos + offset, desired_cam_pos + offset)
+		query.collision_mask = stage2_collision_mask
+		query.exclude = exclude_nodes
+		query.hit_from_inside = true
+		var hit := get_world_3d().direct_space_state.intersect_ray(query)
+		if hit.is_empty():
+			continue
+
+		var hit_position: Vector3 = hit["position"] as Vector3
+		var hit_dist := (hit_position - (anchor_pos + offset)).dot(dir)
+		safe_dist = minf(safe_dist, hit_dist - stage2_collision_margin)
+
+	if safe_dist >= desired_dist:
+		stage2_smoothed_safe_dist = desired_dist
 		return target_rig_pos
 
-	var dir := segment.normalized()
-	var hit_position: Vector3 = hit["position"] as Vector3
-	var safe_cam_pos := hit_position - dir * stage2_collision_margin
-	var projected := (safe_cam_pos - anchor_pos).dot(dir)
-	if projected < stage2_min_anchor_distance:
-		safe_cam_pos = anchor_pos + dir * stage2_min_anchor_distance
+	safe_dist = maxf(safe_dist, stage2_min_anchor_distance)
+
+	if stage2_smoothed_safe_dist < 0.0:
+		stage2_smoothed_safe_dist = safe_dist
+	else:
+		var hysteresis_target := safe_dist
+		if absf(hysteresis_target - stage2_smoothed_safe_dist) <= stage2_collision_hysteresis:
+			hysteresis_target = stage2_smoothed_safe_dist
+		var speed := stage2_collision_release_speed
+		if hysteresis_target < stage2_smoothed_safe_dist:
+			speed = stage2_collision_shrink_speed
+		var alpha := 1.0 - exp(-maxf(speed, 0.001) * maxf(delta, 0.0))
+		stage2_smoothed_safe_dist = lerpf(stage2_smoothed_safe_dist, hysteresis_target, alpha)
+		stage2_smoothed_safe_dist = clampf(stage2_smoothed_safe_dist, stage2_min_anchor_distance, desired_dist)
+
+	var safe_cam_pos := anchor_pos + dir * stage2_smoothed_safe_dist
 
 	return safe_cam_pos - cam_world_offset
+
+
+func _update_stage2_spring_arm_collision_mode(aiming: bool) -> void:
+	if _spring_arm_node == null:
+		return
+	if not _spring_arm_mask_cached:
+		_spring_arm_default_collision_mask = int(_spring_arm_node.collision_mask)
+		_spring_arm_mask_cached = true
+
+	if aiming and stage2_collision_avoidance and stage2_disable_spring_arm_collision_while_aiming:
+		_spring_arm_node.collision_mask = 0
+	else:
+		_spring_arm_node.collision_mask = _spring_arm_default_collision_mask
+
+
+func _get_stage2_stabilized_target_position(raw_target_pos: Vector3, delta: float) -> Vector3:
+	if not stage2_target_pos_initialized:
+		stage2_smoothed_target_pos = raw_target_pos
+		stage2_target_pos_initialized = true
+		return raw_target_pos
+
+	if not _is_stage2_spin_contact_active():
+		stage2_smoothed_target_pos = raw_target_pos
+		return raw_target_pos
+
+	var alpha := 1.0 - exp(-maxf(stage2_contact_position_smooth, 0.001) * maxf(delta, 0.0))
+	stage2_smoothed_target_pos = stage2_smoothed_target_pos.lerp(raw_target_pos, alpha)
+	return stage2_smoothed_target_pos
+
+
+func _is_stage2_spin_contact_active() -> bool:
+	if gun == null:
+		return false
+	if gun.get_contact_count() <= 0:
+		return false
+	return gun.angular_velocity.length() >= stage2_contact_angvel_threshold
 
 
 func _on_gun_fired(muzzle_origin: Vector3, fire_direction: Vector3) -> void:
@@ -484,7 +590,10 @@ func _aim_rotation_(delta: float) -> void:
 		# remove roll while preserving aim forward direction
 		desired_basis = _basis_without_roll(desired_basis)
 
-	var rt := 1.0 - exp(-rot_speed * delta)
+	var active_rot_speed := rot_speed
+	if stage2_contact_stabilization and _is_stage2_spin_contact_active():
+		active_rot_speed = minf(rot_speed, stage2_contact_rotation_smooth)
+	var rt := 1.0 - exp(-maxf(active_rot_speed, 0.001) * maxf(delta, 0.0))
 	var current_basis := global_transform.basis.orthonormalized()
 	var target_basis := desired_basis.orthonormalized()
 	var current_q := current_basis.get_rotation_quaternion()

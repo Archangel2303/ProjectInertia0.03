@@ -51,6 +51,23 @@ uniform float floor_metallic = 0.03;
 uniform float floor_roughness = 0.42;
 uniform float floor_specular = 0.18;
 
+// Near-camera dither fade (screen-door transparency style).
+uniform bool near_camera_dither_enabled = true;
+uniform float fade_distance : hint_range(0.0, 5.0) = 0.5;
+uniform float fade_sharpness : hint_range(0.1, 2.0) = 1.0;
+uniform float grazing_alpha_floor : hint_range(0.0, 1.0) = 0.2;
+uniform float grazing_alpha_power : hint_range(0.1, 4.0) = 1.25;
+uniform float grazing_hard_start : hint_range(0.01, 1.0) = 0.22;
+uniform float grazing_hard_floor : hint_range(0.0, 1.0) = 0.45;
+uniform float grazing_hard_power : hint_range(0.1, 4.0) = 0.85;
+uniform float vignette_alpha_floor : hint_range(0.0, 1.0) = 0.15;
+uniform float vignette_start : hint_range(0.0, 1.0) = 0.7;
+uniform bool penetration_window_enabled = true;
+uniform float penetration_trigger_distance : hint_range(0.0, 3.0) = 0.35;
+uniform float penetration_release_distance : hint_range(0.01, 5.0) = 0.9;
+uniform float penetration_alpha_scale : hint_range(0.0, 1.0) = 0.08;
+uniform float penetration_vignette_boost : hint_range(0.0, 2.0) = 0.75;
+
 varying vec3 world_pos;
 varying vec3 world_normal;
 
@@ -189,4 +206,44 @@ void fragment(){
     float ca_mix = edge_mask * chromatic_aberration_intensity;
     ALBEDO = clamp(ALBEDO + ca_tint * ca_mix * 0.30, vec3(0.0), vec3(1.0));
     EMISSION += ca_tint * ca_mix * 0.20;
+
+    if (near_camera_dither_enabled) {
+        float dist = length(VERTEX);
+        float safe_fade_distance = max(fade_distance, 0.0001);
+        float alpha_val = clamp(pow(dist / safe_fade_distance, fade_sharpness), 0.0, 1.0);
+
+        // Keep bounds present at grazing angles and screen edges so they never vanish completely.
+        float facing_geom = clamp(abs(dot(normalize(NORMAL), normalize(VIEW))), 0.0, 1.0);
+        float facing_mix = min(facing, facing_geom);
+        float grazing_factor = pow(clamp(1.0 - facing_mix, 0.0, 1.0), max(grazing_alpha_power, 0.01));
+        float grazing_floor = clamp(grazing_alpha_floor, 0.0, 1.0) * grazing_factor;
+        float hard_grazing_t = 1.0 - smoothstep(0.0, max(grazing_hard_start, 0.0001), facing_mix);
+        hard_grazing_t = pow(clamp(hard_grazing_t, 0.0, 1.0), max(grazing_hard_power, 0.01));
+        float hard_grazing_floor = clamp(grazing_hard_floor, 0.0, 1.0) * hard_grazing_t;
+        grazing_floor = max(grazing_floor, hard_grazing_floor);
+        float edge_radius = length((SCREEN_UV - vec2(0.5)) * 2.0);
+        float vignette_factor = smoothstep(vignette_start, 1.0, edge_radius);
+        float vignette_floor = clamp(vignette_alpha_floor, 0.0, 1.0) * vignette_factor;
+
+        // If camera is effectively inside level geometry, force a center window while
+        // preserving a visible rim (vignette) so bounds remain readable.
+        if (penetration_window_enabled) {
+            float release_dist = max(penetration_release_distance, penetration_trigger_distance + 0.001);
+            float penetration = 1.0 - smoothstep(penetration_trigger_distance, release_dist, dist);
+            float scaled_alpha = alpha_val * clamp(penetration_alpha_scale, 0.0, 1.0);
+            alpha_val = mix(alpha_val, scaled_alpha, penetration);
+            float boosted_vignette = vignette_floor * (1.0 + penetration * clamp(penetration_vignette_boost, 0.0, 2.0));
+            vignette_floor = clamp(boosted_vignette, 0.0, 1.0);
+        }
+
+        alpha_val = max(alpha_val, max(grazing_floor, vignette_floor));
+
+        if (alpha_val < 1.0) {
+            float dither = dot(vec2(171.0, 231.0), FRAGCOORD.xy);
+            dither = fract(dither / 71.0);
+            if (dither > alpha_val) {
+                discard;
+            }
+        }
+    }
 }

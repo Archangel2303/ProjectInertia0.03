@@ -3,6 +3,9 @@
 [ext_resource type="PackedScene" uid="uid://dxutpopiyfd1h" path="res://scenes/player/PlayerGun.tscn" id="1_1gijn"]
 [ext_resource type="Script" uid="uid://hydnobb1bva4" path="res://scenes/player/recoil_camera_2stage.gd" id="3_recoil"]
 
+[sub_resource type="SphereShape3D" id="SphereShape3D_1gijn"]
+radius = 0.2
+
 [node name="PlayerGunwithcam" type="Node3D" unique_id=2023833259]
 
 [node name="camera follow stage 1 marker" type="Marker3D" parent="." unique_id=1650318049]
@@ -14,9 +17,9 @@ script = ExtResource("3_recoil")
 cam_path = NodePath("SpringArm3D/Camera3D")
 camera_path = NodePath("SpringArm3D/Camera3D")
 follow_marker_path = NodePath("../camera follow stage 1 marker")
-cam_aim_path = NodePath("../PlayerGun/camera follow stage 2")
+cam_aim_path = NodePath("../PlayerGun/SpringArm3D/camera follow stage 2")
 sight_path = NodePath("../PlayerGun/Sight2")
-muzzle_path = NodePath("../PlayerGun/camera follow stage 2")
+muzzle_path = NodePath("../PlayerGun/SpringArm3D/camera follow stage 2")
 follow_speed = 10.0
 aim_follow_speed = 68.0
 rot_speed = 12.0
@@ -33,6 +36,7 @@ stage1_velocity_damping = 5.0
 
 [node name="Camera3D" type="Camera3D" parent="Camera Rig/SpringArm3D" unique_id=1427126429]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.01872468, 0.86550426, 2.7411351)
+near = 0.01
 
 [node name="PlayerGun" parent="." unique_id=49404378 instance=ExtResource("1_1gijn")]
 collision_layer = 17
@@ -50,5 +54,9 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.032668024, -1.1594155)
 
 [node name="Pivot2" type="Marker3D" parent="PlayerGun" unique_id=1125015668]
 
-[node name="camera follow stage 2" type="Marker3D" parent="PlayerGun" unique_id=70711440]
+[node name="SpringArm3D" type="SpringArm3D" parent="PlayerGun" unique_id=1810408551]
+shape = SubResource("SphereShape3D_1gijn")
+margin = 0.15
+
+[node name="camera follow stage 2" type="Marker3D" parent="PlayerGun/SpringArm3D" unique_id=70711440]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.19067961, 0.35765013)
