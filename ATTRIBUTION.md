@@ -66,6 +66,54 @@ This file tracks third-party assets used in this project and the attribution req
 - Files Used In Project:
   - assets/visual/Bullet/bullet_9_mm.glb
 
+### Asset: 44 Magnum.wav
+- Source: https://freesound.org/s/139979/
+- Author: dcsimon
+- License: Creative Commons Attribution 3.0 (CC BY 3.0)
+- License URL: https://creativecommons.org/licenses/by/3.0/
+- Copyright Notice: Not specified in source notice.
+- Required Attribution Text:
+  > "44 Magnum.wav" by dcsimon -- https://freesound.org/s/139979/ -- License: Attribution 3.0
+- Modifications Made: None.
+- Files Used In Project:
+  - assets/audio/sfx/44 Magnum.wav
+
+### Asset: Glass Marbles Dropping into Singing Bowl.wav
+- Source: https://freesound.org/s/661617/
+- Author: Solar01
+- License: Creative Commons Zero (CC0 1.0)
+- License URL: https://creativecommons.org/publicdomain/zero/1.0/
+- Copyright Notice: Not specified in source notice.
+- Required Attribution Text:
+  > "Glass Marbles Dropping into Singing Bowl.wav" by Solar01 -- https://freesound.org/s/661617/ -- License: Creative Commons 0
+- Modifications Made: None.
+- Files Used In Project:
+  - assets/audio/sfx/Glass Marbles Dropping into Singing Bowl.wav
+
+### Asset: R12-29-Gun Shot through Window.wav
+- Source: https://freesound.org/s/486068/
+- Author: craigsmith
+- License: Creative Commons Zero (CC0 1.0)
+- License URL: https://creativecommons.org/publicdomain/zero/1.0/
+- Copyright Notice: Not specified in source notice.
+- Required Attribution Text:
+  > "R12-29-Gun Shot through Window.wav" by craigsmith -- https://freesound.org/s/486068/ -- License: Creative Commons 0
+- Modifications Made: None.
+- Files Used In Project:
+  - assets/audio/sfx/R12-29-Gun Shot through Window.wav
+
+### Asset: Collision 1
+- Source: https://freesound.org/s/446126/
+- Author: JustInvoke
+- License: Creative Commons Attribution 4.0 International (CC BY 4.0)
+- License URL: https://creativecommons.org/licenses/by/4.0/
+- Copyright Notice: Not specified in source notice.
+- Required Attribution Text:
+  > "Collision 1" by JustInvoke -- https://freesound.org/s/446126/ -- License: Attribution 4.0
+- Modifications Made: None.
+- Files Used In Project:
+  - assets/audio/sfx/Collision 1.wav
+
 ---
 
 ## Notes
