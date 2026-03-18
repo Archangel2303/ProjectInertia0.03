@@ -116,6 +116,39 @@ This file tracks third-party assets used in this project and the attribution req
 
 ---
 
+### Asset: Cold Fire (Neozoic) — Uppbeat
+- Source: https://uppbeat.io/t/neozoic/cold-fire
+- Author: Neozoic (via Uppbeat)
+- License: Uppbeat — Free for Creators
+- License Code: 4MUBD3NSL3ME1WDJ
+- Required Attribution Text:
+  > "Cold Fire" by Neozoic — provided by Uppbeat (Free for Creators). License code: 4MUBD3NSL3ME1WDJ
+- Modifications Made: None.
+- Files Used In Project:
+  - assets/Audio/Soundtrack/World 1/cold-fire-neozoic-main-version-37473-02-16.mp3
+
+### Asset: Cosmic Love (Aavirall) — Uppbeat
+- Source: https://uppbeat.io/t/aavirall/cosmic-love
+- Author: Aavirall (via Uppbeat)
+- License: Uppbeat — Free for Creators
+- License Code: 5LX9IWJTQBNRQ7PG
+- Required Attribution Text:
+  > "Cosmic Love" by Aavirall — provided by Uppbeat (Free for Creators). License code: 5LX9IWJTQBNRQ7PG
+- Modifications Made: None.
+- Files Used In Project:
+  - assets/Audio/Soundtrack/World 1/cosmic-love-aavirall-main-version-27447-02-17.mp3
+
+### Asset: Feel the Earth Spinning (Euchmad) — Uppbeat
+- Source: https://uppbeat.io/t/euchmad/feel-the-earth-spinning
+- Author: Euchmad (via Uppbeat)
+- License: Uppbeat — Free for Creators
+- License Code: RQ1FU28RIMTVLYZF
+- Required Attribution Text:
+  > "Feel the Earth Spinning" by Euchmad — provided by Uppbeat (Free for Creators). License code: RQ1FU28RIMTVLYZF
+- Modifications Made: None.
+- Files Used In Project:
+  - assets/Audio/Soundtrack/World 1/feel-the-earth-spinning-euchmad-main-version-34276-03-36.mp3
+
 ## Notes
 
 - Internal assets created by this project team do not require third-party attribution.

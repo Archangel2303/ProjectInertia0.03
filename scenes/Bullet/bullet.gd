@@ -71,6 +71,9 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		if _is_collider_from_shooter(collider):
 			continue
 		if collider.is_in_group("world"):
+			if gamemanager != null and gamemanager.has_method("play_bullet_wall_impact_at"):
+				var impact_point := state.get_contact_collider_position(i)
+				gamemanager.play_bullet_wall_impact_at(impact_point)
 			queue_free()
 			return
 

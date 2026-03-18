@@ -219,6 +219,8 @@ func _spawn_and_fire(shooter: CollisionObject3D) -> void:
 		return
 	var fire_dir := projectile_spawner.spawn_and_fire(self, bullet_scene, muzzle, muzzle_forward_axis, shooter)
 	if fire_dir.length_squared() > 0.000001:
+		if gamemanager != null and gamemanager.has_method("play_gunshot_at"):
+			gamemanager.play_gunshot_at(global_transform.origin)
 		emit_signal("fired", muzzle.global_transform.origin, fire_dir)
 
 

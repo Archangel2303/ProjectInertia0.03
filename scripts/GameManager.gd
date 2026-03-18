@@ -44,6 +44,15 @@ const WORLD_LEVEL_CATALOG := {
 	"World 1": WORLD_1_LEVEL_SCENES
 }
 
+const SFX_GUNSHOT: AudioStream = preload("res://assets/Audio/SFX/Gun/gunshot/gunshot.wav")
+const SFX_BULLET_WALL_IMPACT: AudioStream = preload("res://assets/Audio/SFX/Bullet/collides with wall/446126__justinvoke__collision-1.wav")
+const SFX_ENEMY_ARMOR_BREAK: AudioStream = preload("res://assets/Audio/SFX/Enemy/armour break/486068__craigsmith__r12-29-gun-shot-through-window.wav")
+const SFX_ENEMY_DEATH: AudioStream = preload("res://assets/Audio/SFX/Enemy/death/661617__solar01__glass-marbles-dropping-into-singing-bowl.wav")
+
+const MUSIC_COLD_FIRE: AudioStream = preload("res://assets/Audio/Soundtrack/World 1/cold-fire-neozoic-main-version-37473-02-16.mp3")
+const MUSIC_COSMIC_LOVE: AudioStream = preload("res://assets/Audio/Soundtrack/World 1/cosmic-love-aavirall-main-version-27447-02-17.mp3")
+const MUSIC_FEEL_THE_EARTH_SPINNING: AudioStream = preload("res://assets/Audio/Soundtrack/World 1/feel-the-earth-spinning-euchmad-main-version-34276-03-36.mp3")
+
 const SHOP_BUNDLE_GUN_TEST_SKINS: Array[String] = [
 	"res://assets/visual/magnum/test_skin_magnum_neon_grid.png",
 	"res://assets/visual/magnum/test_skin_magnum_cyber_rings.png",
@@ -108,12 +117,18 @@ var slow_time_scale := 0.2
 @export var slow_time_spin_curve_power := 2.2
 var is_slowing_time := false
 
+var _music_player: AudioStreamPlayer = null
+var _menu_music_playlist: Array[AudioStream] = []
+var _menu_last_track_index: int = -1
+var _music_mode: String = ""
+
 @export var player_gun_path: NodePath = NodePath("")
 @onready var player_gun: RigidBody3D = get_node_or_null(player_gun_path)
 
 func _ready() -> void:
 	_load_level_progress()
 	_load_shop_profile()
+	_setup_audio()
 	emit_signal("state_changed", state)
 	emit_signal("score_changed", score)
 	emit_signal("ammo_changed", ammo, max_ammo)
@@ -125,6 +140,8 @@ func _ready() -> void:
 
 	if player_gun == null:
 		_resolve_player_gun_from_scene()
+
+	_update_scene_context()
 
 
 func _physics_process(delta: float) -> void:
@@ -657,11 +674,129 @@ func _update_scene_context() -> void:
 	if _is_level_scene(path):
 		start_level(path)
 		_resolve_player_gun_from_scene()
+		_play_level_music_for_path(path)
 	else:
 		current_level_path = ""
 		_score_zero_game_over_triggered = false
 		_level_clear_processed = false
 		_ad_continue_used_this_level = false
+		_ensure_menu_music_playing()
+
+
+func _setup_audio() -> void:
+	randomize()
+	_menu_music_playlist = [MUSIC_COLD_FIRE, MUSIC_COSMIC_LOVE, MUSIC_FEEL_THE_EARTH_SPINNING]
+	_music_player = AudioStreamPlayer.new()
+	_music_player.name = "MusicPlayer"
+	_music_player.bus = _get_existing_bus_or_default("Music")
+	add_child(_music_player)
+	if not _music_player.finished.is_connected(_on_music_finished):
+		_music_player.finished.connect(_on_music_finished)
+
+
+func _on_music_finished() -> void:
+	if _music_mode == "menu":
+		_play_random_menu_track()
+
+
+func _ensure_menu_music_playing() -> void:
+	_music_mode = "menu"
+	if _music_player == null:
+		return
+	if _music_player.playing:
+		return
+	_play_random_menu_track()
+
+
+func _play_random_menu_track() -> void:
+	if _music_player == null:
+		return
+	if _menu_music_playlist.is_empty():
+		return
+
+	var next_index := 0
+	if _menu_music_playlist.size() == 1:
+		next_index = 0
+	else:
+		next_index = randi_range(0, _menu_music_playlist.size() - 1)
+		if next_index == _menu_last_track_index:
+			next_index = (next_index + 1) % _menu_music_playlist.size()
+
+	_menu_last_track_index = next_index
+	var stream := _menu_music_playlist[next_index]
+	if stream == null:
+		return
+	_music_player.stream = stream
+	_music_player.play()
+
+
+func _play_level_music_for_path(level_path: String) -> void:
+	if _music_player == null:
+		return
+
+	var level_number := _extract_level_number(level_path)
+	var stream: AudioStream = MUSIC_COLD_FIRE
+	if level_number == 2:
+		stream = MUSIC_COSMIC_LOVE
+	elif level_number == 3:
+		stream = MUSIC_FEEL_THE_EARTH_SPINNING
+
+	var should_switch := (_music_mode != "level") or (_music_player.stream != stream)
+	_music_mode = "level"
+	if not should_switch and _music_player.playing:
+		return
+	_music_player.stream = stream
+	_music_player.play()
+
+
+func _extract_level_number(level_path: String) -> int:
+	if level_path.is_empty():
+		return -1
+	var file_name := level_path.get_file().trim_suffix(".tscn")
+	var marker := file_name.rfind("L")
+	if marker == -1:
+		return -1
+	var suffix := file_name.substr(marker + 1)
+	if not suffix.is_valid_int():
+		return -1
+	return int(suffix)
+
+
+func _get_existing_bus_or_default(bus_name: String) -> String:
+	if AudioServer.get_bus_index(bus_name) != -1:
+		return bus_name
+	return "Master"
+
+
+func _play_sfx_3d(stream: AudioStream, origin: Vector3, bus_name: String, volume_db: float = 0.0) -> void:
+	if stream == null:
+		return
+	var player := AudioStreamPlayer3D.new()
+	player.top_level = true
+	player.stream = stream
+	player.bus = _get_existing_bus_or_default(bus_name)
+	player.volume_db = volume_db
+	player.global_position = origin
+	add_child(player)
+	if not player.finished.is_connected(player.queue_free):
+		player.finished.connect(player.queue_free)
+	player.play()
+
+
+func play_gunshot_at(origin: Vector3) -> void:
+	_play_sfx_3d(SFX_GUNSHOT, origin, "SFX", -3.0)
+
+
+func play_bullet_wall_impact_at(origin: Vector3) -> void:
+	_play_sfx_3d(SFX_BULLET_WALL_IMPACT, origin, "SFX", -2.0)
+
+
+func play_enemy_death_at(origin: Vector3) -> void:
+	_play_sfx_3d(SFX_ENEMY_DEATH, origin, "SFX", -1.0)
+
+
+func play_enemy_armor_break_at(origin: Vector3) -> void:
+	_play_sfx_3d(SFX_ENEMY_ARMOR_BREAK, origin, "SFX", -3.0)
 
 
 func _is_level_scene(path: String) -> bool:
