@@ -32,6 +32,14 @@ func spawn_and_fire(
 		up = Vector3.UP
 	bullet.look_at(bullet.global_transform.origin + dir, up)
 	bullet.fire(dir)
+
+	if dir.length_squared() > 0.000001 and gamemanager != null and gamemanager.has_method("play_gunshot_at"):
+		var sound_origin := muzzle.global_transform.origin
+		var owner_3d := owner as Node3D
+		if owner_3d != null:
+			sound_origin = owner_3d.global_transform.origin
+		gamemanager.play_gunshot_at(sound_origin)
+
 	return dir
 
 

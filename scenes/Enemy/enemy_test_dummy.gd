@@ -59,24 +59,16 @@ func apply_damage(amount: int, hit_type: String = "torso") -> bool:
 		gamemanager.play_enemy_armor_break_at(global_transform.origin)
 
 	var final_damage: int = max(0, int(round(scaled_damage)))
+	if final_damage <= 0:
+		print("HIT BLOCKED:", hit_type, " dmg:", final_damage, " health:", health, " helmet_hits_left:", _helmet_hits_left, " armor_hits_left:", _armor_hits_left)
+		return false
+
 	health -= final_damage
 	print("HIT:", hit_type, " dmg:", final_damage, " health:", health, " helmet_hits_left:", _helmet_hits_left, " armor_hits_left:", _armor_hits_left)
 
-	if despawn_on_any_hit:
-		if gamemanager != null and gamemanager.has_method("play_enemy_death_at"):
-			gamemanager.play_enemy_death_at(global_transform.origin)
-		queue_free()
-		if gamemanager != null and gamemanager.has_method("register_kill"):
-			gamemanager.register_kill(hit_type)
-		return true
-
 	if health <= 0:
 		print("DUMMY DEAD")
-		if gamemanager != null and gamemanager.has_method("play_enemy_death_at"):
-			gamemanager.play_enemy_death_at(global_transform.origin)
 		queue_free()
-		if gamemanager != null and gamemanager.has_method("register_kill"):
-			gamemanager.register_kill(hit_type)
 		return true
 
 	return false

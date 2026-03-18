@@ -13,6 +13,9 @@ var _prompt_panel: PanelContainer
 var _prompt_title_label: Label
 var _prompt_message_label: Label
 var _prompt_buttons: VBoxContainer
+var _screen_fade: ColorRect
+var _prompt_transition_running: bool = false
+var _scene_transition_running: bool = false
 
 
 func _ready() -> void:
@@ -79,7 +82,7 @@ func _on_victory_prompt_requested(payload: Dictionary) -> void:
 	]
 	_prompt_options = payload.get("options", [])
 	_prompt_payload = payload
-	_show_prompt()
+	await _show_prompt_with_gameplay_fade()
 
 
 func _on_game_over_prompt_requested(payload: Dictionary) -> void:
@@ -134,8 +137,30 @@ func _setup_prompt_ui() -> void:
 	_prompt_buttons.add_theme_constant_override("separation", 6)
 	box.add_child(_prompt_buttons)
 
+	_screen_fade = ColorRect.new()
+	_screen_fade.name = "PromptFade"
+	_screen_fade.anchor_left = 0.0
+	_screen_fade.anchor_top = 0.0
+	_screen_fade.anchor_right = 1.0
+	_screen_fade.anchor_bottom = 1.0
+	_screen_fade.offset_left = 0.0
+	_screen_fade.offset_top = 0.0
+	_screen_fade.offset_right = 0.0
+	_screen_fade.offset_bottom = 0.0
+	_screen_fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_screen_fade.color = Color(0.0, 0.0, 0.0, 0.0)
+	_screen_fade.visible = false
+	add_child(_screen_fade)
+
 
 func _show_prompt() -> void:
+	if _prompt_panel == null:
+		return
+	_show_prompt_content()
+	_set_gameplay_paused(true)
+
+
+func _show_prompt_content() -> void:
 	if _prompt_panel == null:
 		return
 
@@ -143,7 +168,17 @@ func _show_prompt() -> void:
 	_prompt_message_label.text = _prompt_message
 	_rebuild_prompt_buttons()
 	_prompt_panel.visible = true
+
+
+func _show_prompt_with_gameplay_fade() -> void:
+	if _prompt_transition_running:
+		return
+	_prompt_transition_running = true
+	await _fade_prompt_screen_to(1.0, 0.22)
+	_show_prompt_content()
+	await _fade_prompt_screen_to(0.0, 0.22)
 	_set_gameplay_paused(true)
+	_prompt_transition_running = false
 
 
 func _hide_prompt() -> void:
@@ -158,6 +193,23 @@ func _set_gameplay_paused(active: bool) -> void:
 	if tree == null:
 		return
 	tree.paused = active
+
+
+func _fade_prompt_screen_to(target_alpha: float, duration: float) -> void:
+	if _screen_fade == null:
+		return
+	_screen_fade.visible = true
+	if duration <= 0.0:
+		_screen_fade.color = Color(0.0, 0.0, 0.0, clampf(target_alpha, 0.0, 1.0))
+		if target_alpha <= 0.001:
+			_screen_fade.visible = false
+		return
+
+	var tween := create_tween()
+	tween.tween_property(_screen_fade, "color:a", clampf(target_alpha, 0.0, 1.0), duration)
+	await tween.finished
+	if target_alpha <= 0.001:
+		_screen_fade.visible = false
 
 
 func _rebuild_prompt_buttons() -> void:
@@ -206,20 +258,19 @@ func _option_to_button_text(option_key: String) -> String:
 func _on_prompt_option_pressed(option_key: String) -> void:
 	if gamemanager == null:
 		return
+	if gamemanager.has_method("play_ui_interaction"):
+		gamemanager.play_ui_interaction()
 
 	match option_key:
 		"watch_ad_continue":
 			if gamemanager.watch_ad_continue_from_game_over():
 				_hide_prompt()
 		"retry_level":
-			_set_gameplay_paused(false)
-			gamemanager.restart_level()
+			await _run_scene_transition_option(option_key)
 		"world_select":
-			_set_gameplay_paused(false)
-			gamemanager.return_to_world_select()
+			await _run_scene_transition_option(option_key)
 		"main_menu":
-			_set_gameplay_paused(false)
-			gamemanager.return_to_main_menu()
+			await _run_scene_transition_option(option_key)
 		"watch_ad_double_rewards":
 			if gamemanager.watch_ad_double_victory_rewards():
 				_prompt_options = _prompt_options.filter(func(value: Variant) -> bool:
@@ -228,10 +279,46 @@ func _on_prompt_option_pressed(option_key: String) -> void:
 				_prompt_message = "%s\nRewards doubled." % _prompt_message
 				_show_prompt()
 		"continue_next_level":
-			_set_gameplay_paused(false)
-			if not gamemanager.continue_to_next_level():
+			await _run_scene_transition_option(option_key)
+
+
+func _run_scene_transition_option(option_key: String) -> void:
+	if _scene_transition_running:
+		return
+	_scene_transition_running = true
+
+	var action := Callable()
+	var fade_out_music := true
+	var keep_level_music_until_loop_end := false
+
+	match option_key:
+		"retry_level":
+			action = Callable(gamemanager, "restart_level")
+		"world_select":
+			action = Callable(gamemanager, "return_to_world_select")
+		"main_menu":
+			action = Callable(gamemanager, "return_to_main_menu")
+			fade_out_music = false
+			keep_level_music_until_loop_end = true
+		"continue_next_level":
+			var next_level_path := String(_prompt_payload.get("next_level_path", ""))
+			if next_level_path.is_empty():
 				_prompt_message = "%s\nNo next level available in this world." % _prompt_message
 				_show_prompt()
+				_scene_transition_running = false
+				return
+			action = Callable(gamemanager, "continue_to_next_level")
+		_:
+			_scene_transition_running = false
+			return
+
+	_set_gameplay_paused(false)
+	if gamemanager.has_method("run_screen_transition"):
+		await gamemanager.run_screen_transition(action, 0.32, 0.24, fade_out_music, keep_level_music_until_loop_end)
+	elif action.is_valid():
+		action.call()
+
+	_scene_transition_running = false
 
 
 func _state_to_text(value: int) -> String:

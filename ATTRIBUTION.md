@@ -149,6 +149,18 @@ This file tracks third-party assets used in this project and the attribution req
 - Files Used In Project:
   - assets/Audio/Soundtrack/World 1/feel-the-earth-spinning-euchmad-main-version-34276-03-36.mp3
 
+### Asset: UI Pop Up
+- Source: https://freesound.org/s/540568/
+- Author: EminYILDIRIM
+- License: Creative Commons Attribution 4.0 International (CC BY 4.0)
+- License URL: https://creativecommons.org/licenses/by/4.0/
+- Copyright Notice: Not specified in source notice.
+- Required Attribution Text:
+  > "UI Pop Up" by EminYILDIRIM -- https://freesound.org/s/540568/ -- License: Attribution 4.0
+- Modifications Made: None.
+- Files Used In Project:
+  - assets/Audio/SFX/UI/menu interaction/540568__eminyildirim__ui-pop-up.wav
+
 ## Notes
 
 - Internal assets created by this project team do not require third-party attribution.

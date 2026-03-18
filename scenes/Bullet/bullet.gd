@@ -108,8 +108,17 @@ func _on_bullet_hitbox_area_entered(hit_area: Area3D) -> void:
 		hit_type = hit_area.get_hit_type()
 
 	# Damage (enemy_root should implement apply_damage(damage, hit_type))
+	var was_killed := false
 	if enemy_root.has_method("apply_damage"):
-		enemy_root.apply_damage(damage, hit_type)
+		var result: Variant = enemy_root.apply_damage(damage, hit_type)
+		if result is bool:
+			was_killed = bool(result)
+
+	if was_killed and gamemanager != null:
+		if gamemanager.has_method("register_kill"):
+			gamemanager.register_kill(hit_type)
+		if gamemanager.has_method("play_enemy_death_at"):
+			gamemanager.play_enemy_death_at(hit_area.global_transform.origin)
 
 	if despawn_on_enemy_hit:
 		queue_free()

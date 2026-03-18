@@ -343,11 +343,19 @@ func _clear_content() -> void:
 		child.queue_free()
 
 
+func _play_ui_interaction_sound() -> void:
+	if gamemanager != null and gamemanager.has_method("play_ui_interaction"):
+		gamemanager.play_ui_interaction()
+
+
 func _add_menu_button(text: String, callback: Callable, should_grab_focus := false) -> Button:
 	var button := Button.new()
 	button.custom_minimum_size = Vector2(300, 44)
 	button.text = text
-	button.pressed.connect(callback)
+	button.pressed.connect(func() -> void:
+		_play_ui_interaction_sound()
+		if callback.is_valid():
+			callback.call())
 	content.add_child(button)
 	if should_grab_focus:
 		button.grab_focus()
@@ -387,7 +395,10 @@ func _make_info_label(text: String) -> Label:
 func _make_checkbox(pressed: bool, callback: Callable) -> CheckBox:
 	var box := CheckBox.new()
 	box.button_pressed = pressed
-	box.toggled.connect(callback)
+	box.toggled.connect(func(on: bool) -> void:
+		_play_ui_interaction_sound()
+		if callback.is_valid():
+			callback.call(on))
 	return box
 
 
@@ -408,7 +419,10 @@ func _make_options(items: Array[String], selected_index: int, callback: Callable
 	for item in items:
 		option.add_item(item)
 	option.select(clampi(selected_index, 0, max(option.item_count - 1, 0)))
-	option.item_selected.connect(callback)
+	option.item_selected.connect(func(index: int) -> void:
+		_play_ui_interaction_sound()
+		if callback.is_valid():
+			callback.call(index))
 	return option
 
 
