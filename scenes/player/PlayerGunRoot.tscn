@@ -6,6 +6,9 @@
 [sub_resource type="SphereShape3D" id="SphereShape3D_1gijn"]
 radius = 0.2
 
+[sub_resource type="SphereShape3D" id="SphereShape3D_cam_rig"]
+radius = 0.18
+
 [node name="PlayerGunwithcam" type="Node3D" unique_id=2023833259]
 
 [node name="camera follow stage 1 marker" type="Marker3D" parent="." unique_id=1650318049]
@@ -25,6 +28,11 @@ aim_follow_speed = 68.0
 rot_speed = 12.0
 remove_roll_in_aim = false
 stage1_orbit_blend_speed = 2.8
+stage1_use_custom_collision_solver = false
+stage1_collision_mask = 1
+stage1_probe_vertical_offset = 0.06
+stage1_probe_horizontal_offset = 0.05
+stage1_pitch_on_fire = false
 stage1_zone_yaw_correction_speed = 1.9
 stage1_zone_pitch_correction_speed = 2.5
 stage1_target_smooth_speed = 8.0
@@ -33,6 +41,9 @@ stage1_velocity_response = 6.0
 stage1_velocity_damping = 5.0
 
 [node name="SpringArm3D" type="SpringArm3D" parent="Camera Rig" unique_id=98548028]
+collision_mask = 1
+margin = 0.12
+shape = SubResource("SphereShape3D_cam_rig")
 
 [node name="Camera3D" type="Camera3D" parent="Camera Rig/SpringArm3D" unique_id=1427126429]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.01872468, 0.86550426, 2.7411351)

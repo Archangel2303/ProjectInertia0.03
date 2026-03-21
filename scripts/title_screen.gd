@@ -73,6 +73,11 @@ var bullet_trail_options: Array[String] = ["Default Trail", "Tracer", "Neon", "S
 var selected_gun_skin_path := ""
 var selected_bullet_skin_path := ""
 var selected_bullet_trail := "Default Trail"
+var settings_display_mode_index := 0
+var settings_vsync_enabled := true
+var settings_fps_cap_index := 1
+var settings_master_volume := 100.0
+var settings_music_volume := 100.0
 
 
 func _ready() -> void:
@@ -81,6 +86,7 @@ func _ready() -> void:
 	_apply_entitlement_policy()
 	_cache_cosmetic_options()
 	_apply_selected_cosmetics_to_game_manager()
+	_apply_saved_settings()
 	var requested := ""
 	if gamemanager != null and gamemanager.has_method("consume_pending_title_screen"):
 		requested = gamemanager.consume_pending_title_screen()
@@ -267,6 +273,7 @@ func _load_menu_profile() -> void:
 		entitlement_source = "build"
 		menu_banner_ads_enabled = true
 		_dismissed_banner_screens = {}
+		_load_runtime_defaults_for_settings()
 		_save_menu_profile()
 		return
 
@@ -289,6 +296,13 @@ func _load_menu_profile() -> void:
 	selected_bullet_skin_path = String(cfg.get_value("cosmetics", "bullet_skin_path", ""))
 	selected_bullet_trail = String(cfg.get_value("cosmetics", "bullet_trail", bullet_trail_options[0]))
 
+	_load_runtime_defaults_for_settings()
+	settings_display_mode_index = clampi(int(cfg.get_value("settings", "display_mode_index", settings_display_mode_index)), 0, 2)
+	settings_vsync_enabled = bool(cfg.get_value("settings", "vsync_enabled", settings_vsync_enabled))
+	settings_fps_cap_index = clampi(int(cfg.get_value("settings", "fps_cap_index", settings_fps_cap_index)), 0, 4)
+	settings_master_volume = clampf(float(cfg.get_value("settings", "master_volume", settings_master_volume)), 0.0, 100.0)
+	settings_music_volume = clampf(float(cfg.get_value("settings", "music_volume", settings_music_volume)), 0.0, 100.0)
+
 
 func _save_menu_profile() -> void:
 	var cfg := ConfigFile.new()
@@ -299,7 +313,65 @@ func _save_menu_profile() -> void:
 	cfg.set_value("cosmetics", "gun_skin_path", selected_gun_skin_path)
 	cfg.set_value("cosmetics", "bullet_skin_path", selected_bullet_skin_path)
 	cfg.set_value("cosmetics", "bullet_trail", selected_bullet_trail)
+	cfg.set_value("settings", "display_mode_index", settings_display_mode_index)
+	cfg.set_value("settings", "vsync_enabled", settings_vsync_enabled)
+	cfg.set_value("settings", "fps_cap_index", settings_fps_cap_index)
+	cfg.set_value("settings", "master_volume", settings_master_volume)
+	cfg.set_value("settings", "music_volume", settings_music_volume)
 	cfg.save(MENU_PROFILE_PATH)
+
+
+func _load_runtime_defaults_for_settings() -> void:
+	settings_display_mode_index = _get_current_display_mode_index()
+	settings_vsync_enabled = DisplayServer.window_get_vsync_mode() != DisplayServer.VSYNC_DISABLED
+	settings_fps_cap_index = _fps_cap_to_index(Engine.max_fps)
+	settings_master_volume = _get_bus_volume_percent("Master", 100.0)
+	settings_music_volume = _get_music_volume_percent_default()
+
+
+func _apply_saved_settings() -> void:
+	_on_display_mode_selected(settings_display_mode_index, false)
+	_on_vsync_toggled(settings_vsync_enabled, false)
+	_on_fps_cap_selected(settings_fps_cap_index, false)
+	_apply_master_volume(settings_master_volume, false)
+	_apply_music_volume(settings_music_volume, false)
+
+
+func _get_current_display_mode_index() -> int:
+	if DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN:
+		return 2
+	if DisplayServer.window_get_flag(DisplayServer.WINDOW_FLAG_BORDERLESS):
+		return 1
+	return 0
+
+
+func _fps_cap_to_index(cap: int) -> int:
+	var caps: Array[int] = [30, 60, 120, 144, 0]
+	var idx := caps.find(cap)
+	if idx != -1:
+		return idx
+	if cap <= 0:
+		return caps.size() - 1
+	return 1
+
+
+func _get_bus_volume_percent(bus_name: String, fallback: float = 100.0) -> float:
+	var bus_index := AudioServer.get_bus_index(bus_name)
+	if bus_index == -1:
+		return fallback
+	return _db_to_percent(AudioServer.get_bus_volume_db(bus_index))
+
+
+func _get_music_volume_percent_default() -> float:
+	if gamemanager != null and gamemanager.has_method("get_music_volume_percent"):
+		return clampf(float(gamemanager.get_music_volume_percent()), 0.0, 100.0)
+	return _get_bus_volume_percent("Music", 100.0)
+
+
+func _db_to_percent(db: float) -> float:
+	if db <= -79.9:
+		return 0.0
+	return clampf(db_to_linear(db) * 100.0, 0.0, 100.0)
 
 
 func _apply_entitlement_policy() -> void:
@@ -627,55 +699,24 @@ func _show_gun_locker() -> void:
 func _show_settings() -> void:
 	current_screen = Screen.SETTINGS
 	_clear_content()
-	_set_header("Settings", "Slay-the-Spire-style complete menu set", "Esc: Back to Main Menu")
+	_set_header("Settings", "Active options used by this build", "Esc: Back to Main Menu")
 	_set_notification("")
 
 	_add_section_title("Display")
-	_add_row("Display Mode", _make_options(["Windowed", "Borderless", "Fullscreen"], 0, _on_display_mode_selected))
-	_add_row("VSync", _make_checkbox(DisplayServer.window_get_vsync_mode() != DisplayServer.VSYNC_DISABLED, _on_vsync_toggled))
-	_add_row("FPS Cap", _make_options(["30", "60", "120", "144", "Uncapped"], 1, _on_fps_cap_selected))
-	_add_row("Resolution Scale", _make_slider(50, 100, 5, 100, _on_resolution_scale_changed))
+	_add_row("Display Mode", _make_options(["Windowed", "Borderless", "Fullscreen"], settings_display_mode_index, _on_display_mode_selected))
+	_add_row("VSync", _make_checkbox(settings_vsync_enabled, _on_vsync_toggled))
+	_add_row("FPS Cap", _make_options(["30", "60", "120", "144", "Uncapped"], settings_fps_cap_index, _on_fps_cap_selected))
 
 	_add_section_title("Audio")
-	_add_row("Master Volume", _make_slider(0, 100, 1, 80, func(v: float) -> void: _set_bus_volume("Master", v)))
-	_add_row("Music Volume", _make_slider(0, 100, 1, 70, func(v: float) -> void: _set_bus_volume("Music", v)))
-	_add_row("SFX Volume", _make_slider(0, 100, 1, 80, func(v: float) -> void: _set_bus_volume("SFX", v)))
-	_add_row("UI Volume", _make_slider(0, 100, 1, 80, func(v: float) -> void: _set_bus_volume("UI", v)))
-	_add_row("Ambient Volume", _make_slider(0, 100, 1, 70, func(v: float) -> void: _set_bus_volume("Ambience", v)))
-
-	_add_section_title("Gameplay")
-	_add_row("Screen Shake", _make_slider(0, 100, 1, 70, func(v: float) -> void: _set_notification("Screen Shake: %d%%" % int(v))))
-	_add_row("Fast Mode", _make_checkbox(false, func(on: bool) -> void: _set_notification("Fast Mode: %s" % ("On" if on else "Off"))))
-	_add_row("Tutorial Prompts", _make_checkbox(true, func(on: bool) -> void: _set_notification("Tutorial Prompts: %s" % ("On" if on else "Off"))))
-	_add_row("Show Damage Numbers", _make_checkbox(true, func(on: bool) -> void: _set_notification("Damage Numbers: %s" % ("On" if on else "Off"))))
-
-	_add_section_title("Controls")
-	_add_row("Mouse Sensitivity", _make_slider(0.1, 2.0, 0.1, 1.0, func(v: float) -> void: _set_notification("Mouse Sensitivity: %.1f" % v)))
-	_add_row("Invert Y", _make_checkbox(false, func(on: bool) -> void: _set_notification("Invert Y: %s" % ("On" if on else "Off"))))
-	_add_row("Controller Vibration", _make_checkbox(true, func(on: bool) -> void: _set_notification("Controller Vibration: %s" % ("On" if on else "Off"))))
-
-	_add_section_title("Accessibility")
-	_add_row("Language", _make_options(["English", "Spanish", "French", "German", "Japanese", "Korean"], 0, func(_i: int) -> void: _set_notification("Language selection saved.")))
-	_add_row("Colorblind Mode", _make_options(["Off", "Protanopia", "Deuteranopia", "Tritanopia"], 0, func(_i: int) -> void: _set_notification("Colorblind mode updated.")))
-	_add_row("Subtitle Size", _make_options(["Small", "Medium", "Large"], 1, func(_i: int) -> void: _set_notification("Subtitle size updated.")))
-	_add_row("Large Cursor", _make_checkbox(false, func(on: bool) -> void: _set_notification("Large Cursor: %s" % ("On" if on else "Off"))))
-
-	_add_section_title("System")
-	_add_row("Confirm on Quit", _make_checkbox(true, func(on: bool) -> void: _set_notification("Confirm on Quit: %s" % ("On" if on else "Off"))))
-	_add_row("Background FPS", _make_options(["15", "30", "60"], 1, func(_i: int) -> void: _set_notification("Background FPS setting updated.")))
-	var tier_text := "Premium (Ad-Free)" if _is_premium_user() else "Free"
-	_add_row("App Tier", _make_info_label(tier_text))
-	_add_row("Entitlement Source", _make_info_label(entitlement_source.capitalize()))
-	if _is_premium_user():
-		_add_row("Menu Banner Ads", _make_info_label("Forced Off"))
-	else:
-		_add_row("Menu Banner Ads", _make_info_label("Forced On"))
+	_add_row("Master Volume", _make_slider(0, 100, 1, settings_master_volume, _on_master_volume_changed))
+	_add_row("Music Volume", _make_slider(0, 100, 1, settings_music_volume, _on_music_volume_changed))
 
 	_add_menu_button("Return to Main Menu", _show_main_menu, true)
 
 
-func _on_display_mode_selected(index: int) -> void:
-	match index:
+func _on_display_mode_selected(index: int, show_notification: bool = true) -> void:
+	settings_display_mode_index = clampi(index, 0, 2)
+	match settings_display_mode_index:
 		0:
 			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
 			DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, false)
@@ -685,25 +726,56 @@ func _on_display_mode_selected(index: int) -> void:
 		2:
 			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN)
 			DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, false)
-	_set_notification("Display mode updated.")
+	_save_menu_profile()
+	if show_notification:
+		_set_notification("Display mode updated.")
 
 
-func _on_vsync_toggled(enabled: bool) -> void:
+func _on_vsync_toggled(enabled: bool, show_notification: bool = true) -> void:
+	settings_vsync_enabled = enabled
 	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if enabled else DisplayServer.VSYNC_DISABLED)
-	_set_notification("VSync: %s" % ("On" if enabled else "Off"))
+	_save_menu_profile()
+	if show_notification:
+		_set_notification("VSync: %s" % ("On" if enabled else "Off"))
 
 
-func _on_fps_cap_selected(index: int) -> void:
+func _on_fps_cap_selected(index: int, show_notification: bool = true) -> void:
 	var caps := [30, 60, 120, 144, 0]
-	Engine.max_fps = caps[clampi(index, 0, caps.size() - 1)]
-	if Engine.max_fps == 0:
-		_set_notification("FPS Cap: Uncapped")
+	settings_fps_cap_index = clampi(index, 0, caps.size() - 1)
+	Engine.max_fps = caps[settings_fps_cap_index]
+	_save_menu_profile()
+	if show_notification:
+		if Engine.max_fps == 0:
+			_set_notification("FPS Cap: Uncapped")
+		else:
+			_set_notification("FPS Cap: %d" % Engine.max_fps)
+
+
+func _on_master_volume_changed(value: float) -> void:
+	_apply_master_volume(value)
+
+
+func _on_music_volume_changed(value: float) -> void:
+	_apply_music_volume(value)
+
+
+func _apply_master_volume(value: float, show_notification: bool = true) -> void:
+	settings_master_volume = clampf(value, 0.0, 100.0)
+	_set_bus_volume("Master", settings_master_volume)
+	_save_menu_profile()
+	if show_notification:
+		_set_notification("Master Volume: %d%%" % int(settings_master_volume))
+
+
+func _apply_music_volume(value: float, show_notification: bool = true) -> void:
+	settings_music_volume = clampf(value, 0.0, 100.0)
+	if gamemanager != null and gamemanager.has_method("set_music_volume_percent"):
+		gamemanager.set_music_volume_percent(settings_music_volume)
 	else:
-		_set_notification("FPS Cap: %d" % Engine.max_fps)
-
-
-func _on_resolution_scale_changed(value: float) -> void:
-	_set_notification("Resolution Scale: %d%%" % int(value))
+		_set_bus_volume("Music", settings_music_volume)
+	_save_menu_profile()
+	if show_notification:
+		_set_notification("Music Volume: %d%%" % int(settings_music_volume))
 
 
 func _set_bus_volume(bus_name: String, value: float) -> void:

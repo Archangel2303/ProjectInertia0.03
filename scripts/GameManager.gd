@@ -53,6 +53,10 @@ const SFX_UI_INTERACTION: AudioStream = preload("res://assets/Audio/SFX/UI/menu 
 const MUSIC_COLD_FIRE: AudioStream = preload("res://assets/Audio/Soundtrack/World 1/cold-fire-neozoic-main-version-37473-02-16.mp3")
 const MUSIC_COSMIC_LOVE: AudioStream = preload("res://assets/Audio/Soundtrack/World 1/cosmic-love-aavirall-main-version-27447-02-17.mp3")
 const MUSIC_FEEL_THE_EARTH_SPINNING: AudioStream = preload("res://assets/Audio/Soundtrack/World 1/feel-the-earth-spinning-euchmad-main-version-34276-03-36.mp3")
+const BASE_AUDIO_GAIN_LINEAR := 0.6696
+const MIX_BOOST_GAMEPLAY_SFX_DB := 3.0
+const MIX_BOOST_UI_SFX_DB := 4.0
+const MASTER_BASELINE_GAIN_LINEAR := 0.8
 
 const SHOP_BUNDLE_GUN_TEST_SKINS: Array[String] = [
 	"res://assets/visual/magnum/test_skin_magnum_neon_grid.png",
@@ -123,7 +127,9 @@ var _menu_music_playlist: Array[AudioStream] = []
 var _menu_last_track_index: int = -1
 var _music_mode: String = ""
 var _active_sfx_players: Array[AudioStreamPlayer3D] = []
-var _music_default_volume_db: float = 0.0
+var _music_default_volume_db: float = linear_to_db(BASE_AUDIO_GAIN_LINEAR)
+var _sfx_default_volume_db: float = linear_to_db(BASE_AUDIO_GAIN_LINEAR)
+var _music_volume_percent: float = 100.0
 var _transition_layer: CanvasLayer = null
 var _transition_rect: ColorRect = null
 var _transition_in_progress: bool = false
@@ -135,6 +141,7 @@ var _last_victory_stats: Dictionary = {}
 func _ready() -> void:
 	_load_level_progress()
 	_load_shop_profile()
+	_apply_master_baseline_gain()
 	_setup_transition_overlay()
 	_setup_audio()
 	emit_signal("state_changed", state)
@@ -715,6 +722,7 @@ func _setup_audio() -> void:
 	_music_player.name = "MusicPlayer"
 	_music_player.bus = _get_existing_bus_or_default("Music")
 	add_child(_music_player)
+	_apply_music_volume_setting()
 	if not _music_player.finished.is_connected(_on_music_finished):
 		_music_player.finished.connect(_on_music_finished)
 
@@ -791,7 +799,7 @@ func _fade_out_music_and_stop(duration: float) -> void:
 		return
 	if duration <= 0.0:
 		_music_player.stop()
-		_music_player.volume_db = _music_default_volume_db
+		_apply_music_volume_setting()
 		return
 
 	var tween := create_tween()
@@ -800,7 +808,7 @@ func _fade_out_music_and_stop(duration: float) -> void:
 		if _music_player == null:
 			return
 		_music_player.stop()
-		_music_player.volume_db = _music_default_volume_db)
+		_apply_music_volume_setting())
 
 
 func _on_music_finished() -> void:
@@ -836,7 +844,7 @@ func _play_random_menu_track() -> void:
 	if stream == null:
 		return
 	_music_player.stream = stream
-	_music_player.volume_db = _music_default_volume_db
+	_apply_music_volume_setting()
 	_music_player.play()
 
 
@@ -844,20 +852,43 @@ func _play_level_music_for_path(level_path: String) -> void:
 	if _music_player == null:
 		return
 
-	var level_number := _extract_level_number(level_path)
-	var stream: AudioStream = MUSIC_COLD_FIRE
-	if level_number == 2:
-		stream = MUSIC_COSMIC_LOVE
-	elif level_number == 3:
-		stream = MUSIC_FEEL_THE_EARTH_SPINNING
+	var stream := _select_level_music_stream(level_path)
+	if stream == null:
+		return
 
 	var should_switch := (_music_mode != "level") or (_music_player.stream != stream)
 	_music_mode = "level"
 	if not should_switch and _music_player.playing:
 		return
 	_music_player.stream = stream
-	_music_player.volume_db = _music_default_volume_db
+	_apply_music_volume_setting()
 	_music_player.play()
+
+
+func _select_level_music_stream(level_path: String) -> AudioStream:
+	var tracks: Array[AudioStream] = _menu_music_playlist
+	if tracks.is_empty():
+		tracks = [MUSIC_COLD_FIRE, MUSIC_COSMIC_LOVE, MUSIC_FEEL_THE_EARTH_SPINNING]
+	if tracks.is_empty():
+		return null
+
+	var level_number := _extract_level_number(level_path)
+	if level_number > 0:
+		var numbered_index := posmod(level_number - 1, tracks.size())
+		return tracks[numbered_index]
+
+	# If scene names change (for example no W1Lxx format), still pick a stable track per level.
+	var stable_index := posmod(level_path.hash(), tracks.size())
+	return tracks[stable_index]
+
+
+func set_music_volume_percent(value: float) -> void:
+	_music_volume_percent = clampf(value, 0.0, 100.0)
+	_apply_music_volume_setting()
+
+
+func get_music_volume_percent() -> float:
+	return _music_volume_percent
 
 
 func _extract_level_number(level_path: String) -> int:
@@ -877,6 +908,31 @@ func _get_existing_bus_or_default(bus_name: String) -> String:
 	if AudioServer.get_bus_index(bus_name) != -1:
 		return bus_name
 	return "Master"
+
+
+func _apply_music_volume_setting() -> void:
+	var target_db := _volume_percent_to_db(_music_volume_percent)
+	var music_bus_index := AudioServer.get_bus_index("Music")
+	if music_bus_index != -1:
+		AudioServer.set_bus_volume_db(music_bus_index, target_db)
+		if _music_player != null:
+			_music_player.volume_db = _music_default_volume_db
+		return
+	if _music_player != null:
+		_music_player.volume_db = _music_default_volume_db + target_db
+
+
+func _volume_percent_to_db(value: float) -> float:
+	if value <= 0.0:
+		return -80.0
+	return linear_to_db(clampf(value / 100.0, 0.0, 1.0))
+
+
+func _apply_master_baseline_gain() -> void:
+	var master_bus := AudioServer.get_bus_index("Master")
+	if master_bus == -1:
+		return
+	AudioServer.set_bus_volume_db(master_bus, linear_to_db(MASTER_BASELINE_GAIN_LINEAR))
 
 
 func _track_sfx_player(player: AudioStreamPlayer3D) -> void:
@@ -916,10 +972,10 @@ func _play_sfx_3d(
 	player.top_level = true
 	player.stream = stream
 	player.bus = _get_existing_bus_or_default(bus_name)
-	player.volume_db = volume_db + randf_range(-absf(volume_jitter_db), absf(volume_jitter_db))
+	player.volume_db = _sfx_default_volume_db + volume_db + randf_range(-absf(volume_jitter_db), absf(volume_jitter_db))
 	player.pitch_scale = randf_range(minf(pitch_min, pitch_max), maxf(pitch_min, pitch_max))
-	player.global_position = origin
 	add_child(player)
+	player.global_position = origin
 	_track_sfx_player(player)
 	player.play(maxf(0.0, start_time))
 
@@ -938,7 +994,7 @@ func _play_sfx_ui(
 	var player := AudioStreamPlayer.new()
 	player.stream = stream
 	player.bus = _get_existing_bus_or_default(bus_name)
-	player.volume_db = volume_db + randf_range(-absf(volume_jitter_db), absf(volume_jitter_db))
+	player.volume_db = _sfx_default_volume_db + volume_db + randf_range(-absf(volume_jitter_db), absf(volume_jitter_db))
 	player.pitch_scale = randf_range(minf(pitch_min, pitch_max), maxf(pitch_min, pitch_max))
 	add_child(player)
 	if not player.finished.is_connected(player.queue_free):
@@ -947,11 +1003,11 @@ func _play_sfx_ui(
 
 
 func play_gunshot_at(origin: Vector3) -> void:
-	_play_sfx_3d(SFX_GUNSHOT, origin, "SFX", -3.0, 0.98, 1.02, 0.6, 0.57)
+	_play_sfx_3d(SFX_GUNSHOT, origin, "SFX", -3.0 + MIX_BOOST_GAMEPLAY_SFX_DB, 0.98, 1.02, 0.6, 0.57)
 
 
 func play_bullet_wall_impact_at(origin: Vector3) -> void:
-	_play_sfx_3d(SFX_BULLET_WALL_IMPACT, origin, "SFX", -2.0)
+	_play_sfx_3d(SFX_BULLET_WALL_IMPACT, origin, "SFX", -2.0 + MIX_BOOST_GAMEPLAY_SFX_DB)
 
 
 func play_enemy_death_at(origin: Vector3) -> void:
@@ -967,10 +1023,10 @@ func play_enemy_death_at(origin: Vector3) -> void:
 	player.top_level = true
 	player.stream = SFX_ENEMY_DEATH
 	player.bus = _get_existing_bus_or_default("SFX")
-	player.volume_db = -1.0 + randf_range(-0.5, 0.5)
+	player.volume_db = _sfx_default_volume_db - 1.0 + MIX_BOOST_GAMEPLAY_SFX_DB + randf_range(-0.5, 0.5)
 	player.pitch_scale = randf_range(0.98, 1.02)
-	player.global_position = origin
 	add_child(player)
+	player.global_position = origin
 	_track_sfx_player(player)
 	player.play(start_time)
 
@@ -989,15 +1045,20 @@ func play_enemy_death_at(origin: Vector3) -> void:
 
 
 func play_enemy_armor_break_at(origin: Vector3) -> void:
-	_play_sfx_3d(SFX_ENEMY_ARMOR_BREAK, origin, "SFX", -3.0)
+	_play_sfx_3d(SFX_ENEMY_ARMOR_BREAK, origin, "SFX", -3.0 + MIX_BOOST_GAMEPLAY_SFX_DB)
 
 
 func play_ui_interaction() -> void:
-	_play_sfx_ui(SFX_UI_INTERACTION, "UI", -8.0, 0.98, 1.02, 0.5)
+	_play_sfx_ui(SFX_UI_INTERACTION, "UI", -8.0 + MIX_BOOST_UI_SFX_DB, 0.98, 1.02, 0.5)
 
 
 func _is_level_scene(path: String) -> bool:
-	return not path.is_empty() and path.begins_with(levels_root_prefix)
+	if path.is_empty() or not path.ends_with(".tscn"):
+		return false
+	if path.begins_with(levels_root_prefix):
+		return true
+	# Keep level music working if world folders are reorganized but still live under a Levels segment.
+	return path.contains("/Levels/")
 
 
 func _sanitize_texture_path(path: String) -> String:

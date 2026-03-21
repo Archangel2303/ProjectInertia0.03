@@ -16,14 +16,19 @@ var _prompt_buttons: VBoxContainer
 var _screen_fade: ColorRect
 var _prompt_transition_running: bool = false
 var _scene_transition_running: bool = false
+var _state_label: Label
+var _controls_label: Label
 
 
 func _ready() -> void:
 	# Keep HUD active during gameplay and while the scene tree is paused for prompt interaction.
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	_setup_readout_ui()
+	_setup_controls_legend()
 	_setup_prompt_ui()
 
 	if gamemanager == null:
+		_refresh_hud_text()
 		return
 
 	gamemanager.score_changed.connect(_on_score_changed)
@@ -35,40 +40,14 @@ func _ready() -> void:
 	_on_score_changed(int(gamemanager.score))
 	_on_state_changed(int(gamemanager.state))
 
-func _process(_dt: float) -> void:
-	var b: RigidBody3D = null
-
-	if gamemanager != null and gamemanager.player_gun != null:
-		b = gamemanager.player_gun
-
-	# Fallback: search the current scene (safer than searching the Window root)
-	if b == null:
-		var root_scene := get_tree().get_current_scene()
-		if root_scene == null and get_tree().get_root().get_child_count() > 0:
-			root_scene = get_tree().get_root().get_child(0)
-		if root_scene != null:
-			var candidate: Node = _find_node_recursive(root_scene, "PlayerGun")
-			if candidate != null:
-				b = candidate as RigidBody3D
-
-	if b == null:
-		label.text = _build_hud_text("No gun found")
-		return
-
-	var telemetry := "ang_vel: %s\nlin_vel: %s\nrot(deg): %s" % [
-		str(b.angular_velocity),
-		str(b.linear_velocity),
-		str(b.rotation_degrees)
-	]
-	label.text = _build_hud_text(telemetry)
-
-
 func _on_score_changed(value: int) -> void:
 	_latest_score = value
+	_refresh_hud_text()
 
 
 func _on_state_changed(value: int) -> void:
 	_latest_state = value
+	_refresh_hud_text()
 	if value == 0:
 		_hide_prompt()
 		_set_gameplay_paused(false)
@@ -101,9 +80,50 @@ func _on_run_reset() -> void:
 	_hide_prompt()
 
 
-func _build_hud_text(telemetry: String) -> String:
-	var state_label := _state_to_text(_latest_state)
-	return "Score: %d\nState: %s\n\n%s" % [_latest_score, state_label, telemetry]
+func _setup_readout_ui() -> void:
+	if label == null:
+		return
+	label.text = ""
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	label.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+	label.add_theme_font_size_override("font_size", 52)
+
+	_state_label = Label.new()
+	_state_label.name = "StateReadout"
+	_state_label.offset_left = label.offset_left
+	_state_label.offset_top = 118.0
+	_state_label.offset_right = 520.0
+	_state_label.offset_bottom = 160.0
+	_state_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_state_label.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+	_state_label.add_theme_font_size_override("font_size", 22)
+	add_child(_state_label)
+
+
+func _setup_controls_legend() -> void:
+	_controls_label = Label.new()
+	_controls_label.name = "ControlsLegend"
+	_controls_label.anchor_left = 0.0
+	_controls_label.anchor_top = 1.0
+	_controls_label.anchor_right = 0.0
+	_controls_label.anchor_bottom = 1.0
+	_controls_label.offset_left = 20.0
+	_controls_label.offset_top = -132.0
+	_controls_label.offset_right = 430.0
+	_controls_label.offset_bottom = -20.0
+	_controls_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_controls_label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+	_controls_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_controls_label.add_theme_font_size_override("font_size", 16)
+	_controls_label.text = "Controls\nLMB/Space: Fire\nShift: Slow Time (Aim)\nEsc: Pause / Back"
+	add_child(_controls_label)
+
+
+func _refresh_hud_text() -> void:
+	if label != null:
+		label.text = "%06d" % _latest_score
+	if _state_label != null:
+		_state_label.text = "STATE: %s" % _state_to_text(_latest_state)
 
 
 func _setup_prompt_ui() -> void:
@@ -333,12 +353,3 @@ func _state_to_text(value: int) -> String:
 			return "GAME_OVER"
 		_:
 			return "UNKNOWN"
-
-func _find_node_recursive(node: Node, target_name: String) -> Node:
-	if node.name == target_name:
-		return node
-	for child in node.get_children():
-		var found: Node = _find_node_recursive(child, target_name)
-		if found != null:
-			return found
-	return null
