@@ -99,6 +99,7 @@ var last_daily_claim_date: String = ""
 @export var starting_score: int = 2000
 @export var score_decay_per_second: float = 30.0
 @export var score_cost_per_shot: int = 45
+@export var score_cost_reset_gun: int = 500
 @export var kill_score_head: int = 500
 @export var kill_score_torso: int = 350
 @export var kill_score_limb: int = 250
@@ -212,6 +213,24 @@ func spend_score(amount: int) -> void:
 
 func register_shot_fired() -> void:
 	spend_score(score_cost_per_shot)
+
+
+func try_reset_player_gun() -> bool:
+	if state != GameState.PLAYING:
+		return false
+	if score < score_cost_reset_gun:
+		return false
+
+	if player_gun == null:
+		_resolve_player_gun_from_scene()
+	if player_gun == null:
+		return false
+	if not player_gun.has_method("reset_to_spawn_state"):
+		return false
+
+	spend_score(score_cost_reset_gun)
+	player_gun.call("reset_to_spawn_state")
+	return true
 
 
 func register_kill(hit_type: String) -> void:

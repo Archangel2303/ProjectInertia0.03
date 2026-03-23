@@ -1,6 +1,10 @@
 extends CanvasLayer
 
 @onready var label: Label = $Readout
+const RESET_GUN_COST := 500
+
+# Toggle to temporarily disable the reset control for testing
+var reset_enabled: bool = true
 
 var _latest_score: int = 0
 var _latest_state: int = 0
@@ -18,6 +22,8 @@ var _prompt_transition_running: bool = false
 var _scene_transition_running: bool = false
 var _state_label: Label
 var _controls_label: Label
+var _reset_button: Button
+var _reset_feedback_label: Label
 
 
 func _ready() -> void:
@@ -25,6 +31,7 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_setup_readout_ui()
 	_setup_controls_legend()
+	_setup_reset_button()
 	_setup_prompt_ui()
 
 	if gamemanager == null:
@@ -115,8 +122,42 @@ func _setup_controls_legend() -> void:
 	_controls_label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
 	_controls_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_controls_label.add_theme_font_size_override("font_size", 16)
-	_controls_label.text = "Controls\nLMB/Space: Fire\nShift: Slow Time (Aim)\nEsc: Pause / Back"
+	_controls_label.text = "Controls\nLMB/Space: Fire\nShift: Slow Time (Aim)\nR: Reset Gun (-500)\nEsc: Pause / Back"
 	add_child(_controls_label)
+
+
+func _setup_reset_button() -> void:
+	_reset_button = Button.new()
+	_reset_button.name = "ResetGunButton"
+	_reset_button.anchor_left = 1.0
+	_reset_button.anchor_top = 0.0
+	_reset_button.anchor_right = 1.0
+	_reset_button.anchor_bottom = 0.0
+	_reset_button.offset_left = -220.0
+	_reset_button.offset_top = 20.0
+	_reset_button.offset_right = -20.0
+	_reset_button.offset_bottom = 64.0
+	_reset_button.text = "Reset Gun [R] (-500)"
+	_reset_button.add_theme_font_size_override("font_size", 20)
+	_reset_button.pressed.connect(_on_reset_button_pressed)
+	_reset_button.disabled = not reset_enabled
+	add_child(_reset_button)
+
+	_reset_feedback_label = Label.new()
+	_reset_feedback_label.name = "ResetGunFeedback"
+	_reset_feedback_label.anchor_left = 1.0
+	_reset_feedback_label.anchor_top = 0.0
+	_reset_feedback_label.anchor_right = 1.0
+	_reset_feedback_label.anchor_bottom = 0.0
+	_reset_feedback_label.offset_left = -280.0
+	_reset_feedback_label.offset_top = 66.0
+	_reset_feedback_label.offset_right = -20.0
+	_reset_feedback_label.offset_bottom = 96.0
+	_reset_feedback_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_reset_feedback_label.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+	_reset_feedback_label.add_theme_font_size_override("font_size", 16)
+	_reset_feedback_label.modulate = Color(1.0, 0.45, 0.45, 0.0)
+	add_child(_reset_feedback_label)
 
 
 func _refresh_hud_text() -> void:
@@ -124,6 +165,9 @@ func _refresh_hud_text() -> void:
 		label.text = "%06d" % _latest_score
 	if _state_label != null:
 		_state_label.text = "STATE: %s" % _state_to_text(_latest_state)
+	if _reset_button != null:
+		var can_reset := _latest_score >= RESET_GUN_COST and _latest_state == 0
+		_reset_button.disabled = not can_reset
 
 
 func _setup_prompt_ui() -> void:
@@ -353,3 +397,47 @@ func _state_to_text(value: int) -> String:
 			return "GAME_OVER"
 		_:
 			return "UNKNOWN"
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if not reset_enabled:
+		return
+
+	if event.is_action_pressed("reset_gun"):
+		_try_reset_player_gun()
+		get_viewport().set_input_as_handled()
+
+
+func _on_reset_button_pressed() -> void:
+	_try_reset_player_gun()
+
+
+func _try_reset_player_gun() -> void:
+	if gamemanager == null:
+		return
+	if _latest_state != 0:
+		return
+	if _latest_score < RESET_GUN_COST:
+		_show_reset_not_enough_score_feedback()
+		return
+	if gamemanager.has_method("play_ui_interaction"):
+		gamemanager.play_ui_interaction()
+	if gamemanager.has_method("try_reset_player_gun"):
+		gamemanager.try_reset_player_gun()
+
+
+func _show_reset_not_enough_score_feedback() -> void:
+	if _reset_feedback_label != null:
+		var deficit := maxi(0, RESET_GUN_COST - _latest_score)
+		_reset_feedback_label.text = "Need +%d more score" % deficit
+		_reset_feedback_label.modulate = Color(1.0, 0.45, 0.45, 0.0)
+		var feedback_tween := create_tween()
+		feedback_tween.tween_property(_reset_feedback_label, "modulate:a", 1.0, 0.08)
+		feedback_tween.tween_interval(0.55)
+		feedback_tween.tween_property(_reset_feedback_label, "modulate:a", 0.0, 0.2)
+
+	if _reset_button != null:
+		_reset_button.modulate = Color(1.0, 1.0, 1.0, 1.0)
+		var button_tween := create_tween()
+		button_tween.tween_property(_reset_button, "modulate", Color(1.0, 0.68, 0.68, 1.0), 0.06)
+		button_tween.tween_property(_reset_button, "modulate", Color(1.0, 1.0, 1.0, 1.0), 0.16)

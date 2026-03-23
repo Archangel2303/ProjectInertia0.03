@@ -18,8 +18,8 @@ func spawn_and_fire(
 	else:
 		owner.get_tree().get_root().add_child(bullet)
 
-	bullet.global_transform = muzzle.global_transform
 	var owner_body := owner as CollisionObject3D
+	# Apply collision exceptions before placing the bullet so it won't immediately collide on the first physics step.
 	if shooter:
 		bullet.add_collision_exception_with(shooter)
 	if owner_body != null and owner_body != shooter:
@@ -30,8 +30,18 @@ func spawn_and_fire(
 	var up := muzzle.global_transform.basis.y.normalized()
 	if abs(dir.dot(up)) > 0.98:
 		up = Vector3.UP
+	# Small forward offset to avoid spawning inside geometry.
+	var spawn_offset := dir * 0.12
+	var spawn_xform := muzzle.global_transform
+	spawn_xform.origin = muzzle.global_transform.origin + spawn_offset
+
+	# Debug: log spawn parameters to help diagnose immediate-despawn issues
+	print("spawn_and_fire: muzzle_origin=", muzzle.global_transform.origin, " dir=", dir, " spawn_origin=", spawn_xform.origin)
+
+	bullet.global_transform = spawn_xform
 	bullet.look_at(bullet.global_transform.origin + dir, up)
 	bullet.fire(dir)
+	print("spawn_and_fire: fired bullet with dir.length=", dir.length())
 
 	if dir.length_squared() > 0.000001 and gamemanager != null and gamemanager.has_method("play_gunshot_at"):
 		var sound_origin := muzzle.global_transform.origin

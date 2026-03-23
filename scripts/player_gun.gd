@@ -67,6 +67,11 @@ const GunGravityArmer = preload("res://scripts/gun_gravity_armer.gd")
 @export var backspin_min_after_fire := 1.1
 @export var backspin_collision_cancel_resistance := 0.9
 
+# Pitch-based passive handoff tuning (when gun pitch is near level)
+@export var passive_handoff_pitch_tolerance_deg := 5.0
+@export var backspin_damping_handoff_multiplier := 4.0
+@export var passive_handoff_clear_protection := true
+
 # Rest-state roll correction so the gun settles right-side up before the next shot.
 @export var auto_upright_enabled := true
 @export var auto_upright_delay_after_fire := 0.5
@@ -82,6 +87,7 @@ const GunGravityArmer = preload("res://scripts/gun_gravity_armer.gd")
 @export var enable_gravity_after_first_shot := true
 @export var gravity_scale_after_first_shot := 0.8
 @onready var muzzle: Marker3D = muzzle_node if muzzle_node != null else get_node_or_null("Muzzle") as Marker3D
+@export var debug_bullet_spawn := false
 
 # Laser sight prediction
 @export var laser_sight_enabled := true
@@ -105,10 +111,12 @@ var _laser_mesh_instance: MeshInstance3D = null
 var _laser_mesh := ImmediateMesh.new()
 var _laser_material := StandardMaterial3D.new()
 var _gun_skin_material: StandardMaterial3D = null
+var _spawn_global_transform: Transform3D = Transform3D.IDENTITY
 
 @onready var gun_mesh: MeshInstance3D = get_node_or_null("MeshInstance3D") as MeshInstance3D
 
 func _ready() -> void:
+	_spawn_global_transform = global_transform
 	gravity_armer.configure(enable_gravity_after_first_shot, gravity_scale_after_first_shot)
 	gravity_armer.reset(self, 0.0)
 	_apply_selected_gun_skin()
@@ -119,10 +127,21 @@ func _ready() -> void:
 	linear_velocity = Vector3.ZERO
 	angular_velocity = Vector3.ZERO
 	_setup_laser_sight()
+	if gamemanager != null:
+		gamemanager.run_reset.connect(_on_run_reset)
 
 func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	if auto_upright_cooldown_left > 0.0:
 		auto_upright_cooldown_left = maxf(0.0, auto_upright_cooldown_left - state.step)
+
+	# Allow an expedited backspin decay (hand off to passive spin) when the gun's pitch is near level.
+	var effective_backspin_damping: float = float(backspin_falloff_damping)
+	var forward: Vector3 = (-state.transform.basis.z).normalized()
+	var pitch_rad: float = asin(clamp(forward.y, -1.0, 1.0))
+	var pitch_deg: float = abs(rad_to_deg(pitch_rad))
+	# Only expedite backspin decay if gun is level AND the forced backspin protection window has finished.
+	if pitch_deg <= passive_handoff_pitch_tolerance_deg and backspin_protection_time_left <= 0.0:
+		effective_backspin_damping = backspin_falloff_damping * maxf(1.0, backspin_damping_handoff_multiplier)
 
 	spin_controller.integrate_angular_velocity(
 		state,
@@ -131,7 +150,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		passive_spin_direction,
 		passive_spin_response,
 		cross_axis_damping,
-		backspin_falloff_damping
+		effective_backspin_damping
 	)
 
 	if backspin_protection_time_left > 0.0:
@@ -190,6 +209,8 @@ func _input(event): #function to handle input events
 
 	if event.is_action_pressed("fire"):
 		fire_queued = true
+		if debug_bullet_spawn:
+			print_debug("player_gun: fire input - queued")
 	
 	if event.is_action_pressed("slow_time"):
 		gamemanager.start_slow_time()
@@ -216,8 +237,12 @@ func _apply_fire_impulses(xform_basis: Basis) -> void:
 
 func _spawn_and_fire(shooter: CollisionObject3D) -> void:
 	if muzzle == null:
+		if debug_bullet_spawn:
+			print_debug("player_gun: muzzle is null, cannot spawn bullet")
 		return
 	var fire_dir := projectile_spawner.spawn_and_fire(self, bullet_scene, muzzle, muzzle_forward_axis, shooter)
+	if debug_bullet_spawn:
+		print_debug("player_gun: spawn_and_fire returned dir length", fire_dir.length())
 	if fire_dir.length_squared() > 0.000001:
 		emit_signal("fired", muzzle.global_transform.origin, fire_dir)
 
@@ -348,6 +373,26 @@ func _apply_selected_gun_skin() -> void:
 
 	_gun_skin_material.albedo_texture = skin_texture
 	gun_mesh.set_surface_override_material(0, _gun_skin_material)
+
+
+func reset_to_spawn_state() -> void:
+	# Restore transform/kinematics and clear all post-shot state so gameplay feels like a fresh spawn.
+	global_transform = _spawn_global_transform
+	sleeping = false
+	freeze = false
+	linear_velocity = Vector3.ZERO
+	angular_velocity = Vector3.ZERO
+	passive_spin_direction = 1
+	fire_queued = false
+	bullet_spawn_queued = false
+	backspin_protection_time_left = 0.0
+	auto_upright_cooldown_left = 0.0
+	gravity_armer.configure(enable_gravity_after_first_shot, gravity_scale_after_first_shot)
+	gravity_armer.reset(self, 0.0)
+
+
+func _on_run_reset() -> void:
+	reset_to_spawn_state()
 
 	
  
