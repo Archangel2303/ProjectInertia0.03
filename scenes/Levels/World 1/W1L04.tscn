@@ -8,8 +8,6 @@
 [ext_resource type="PackedScene" uid="uid://cotjyg87mxldd" path="res://scenes/Enemy/Enemy_TestDummy.tscn" id="6_stlyw"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_f00ir"]
-sky_top_color = Color(0.17254902, 0.30588236, 0.56078434, 1)
-sky_horizon_color = Color(0.43529412, 0.6627451, 1, 1)
 sky_energy_multiplier = 0.4
 ground_horizon_color = Color(0.41960785, 0.49803922, 0.67058825, 1)
 ground_energy_multiplier = 0.6
@@ -25,17 +23,23 @@ ambient_light_color = Color(0.77656037, 0.58196867, 0.9919099, 1)
 ambient_light_energy = 0.25
 reflected_light_source = 2
 tonemap_mode = 3
+ssr_enabled = true
+ssr_max_steps = 128
+ssr_fade_in = 0.1
+ssr_fade_out = 20.0
+ssr_depth_tolerance = 0.25
 glow_enabled = true
 glow_levels/1 = 0.71
 glow_levels/2 = 0.42
 glow_levels/3 = 0.46
 glow_levels/4 = 0.05
 glow_intensity = 1.2
-glow_bloom = 0.15
+glow_bloom = 0.19
 fog_enabled = true
-fog_light_color = Color(0.42549214, 0.5741978, 0.65466434, 1)
+fog_light_color = Color(0.6382778, 0.49354273, 0.634863, 1)
+fog_light_energy = 0.28
 fog_sun_scatter = 0.1
-fog_density = 0.003
+fog_density = 0.005
 volumetric_fog_enabled = true
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_kuvsi"]
@@ -149,9 +153,9 @@ shader_parameter/glitch_pulse_strength = 0.12
 shader_parameter/glitch_pulse_rate = 0.35
 shader_parameter/glitch_pulse_density = 0.03
 shader_parameter/glitch_pulse_speed = 1.4
-shader_parameter/floor_metallic = 0.03
-shader_parameter/floor_roughness = 0.42
-shader_parameter/floor_specular = 0.18
+shader_parameter/floor_metallic = 0.07
+shader_parameter/floor_roughness = 0.28
+shader_parameter/floor_specular = 0.32
 shader_parameter/near_camera_dither_enabled = true
 shader_parameter/fade_distance = 0.5
 shader_parameter/fade_sharpness = 1.0

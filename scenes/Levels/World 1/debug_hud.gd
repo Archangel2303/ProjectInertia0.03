@@ -20,7 +20,6 @@ var _prompt_buttons: VBoxContainer
 var _screen_fade: ColorRect
 var _prompt_transition_running: bool = false
 var _scene_transition_running: bool = false
-var _state_label: Label
 var _controls_label: Label
 var _reset_button: Button
 var _reset_feedback_label: Label
@@ -95,17 +94,6 @@ func _setup_readout_ui() -> void:
 	label.vertical_alignment = VERTICAL_ALIGNMENT_TOP
 	label.add_theme_font_size_override("font_size", 52)
 
-	_state_label = Label.new()
-	_state_label.name = "StateReadout"
-	_state_label.offset_left = label.offset_left
-	_state_label.offset_top = 118.0
-	_state_label.offset_right = 520.0
-	_state_label.offset_bottom = 160.0
-	_state_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	_state_label.vertical_alignment = VERTICAL_ALIGNMENT_TOP
-	_state_label.add_theme_font_size_override("font_size", 22)
-	add_child(_state_label)
-
 
 func _setup_controls_legend() -> void:
 	_controls_label = Label.new()
@@ -122,7 +110,7 @@ func _setup_controls_legend() -> void:
 	_controls_label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
 	_controls_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_controls_label.add_theme_font_size_override("font_size", 16)
-	_controls_label.text = "Controls\nLMB/Space: Fire\nShift: Slow Time (Aim)\nR: Reset Gun (-500)\nEsc: Pause / Back"
+	_controls_label.text = "Controls\nLMB/Space: Fire\nWASD: Spin Gun\nShift: Slow Time (Aim)\nR: Reset Gun (-500)\nEsc: Pause / Back"
 	add_child(_controls_label)
 
 
@@ -163,8 +151,6 @@ func _setup_reset_button() -> void:
 func _refresh_hud_text() -> void:
 	if label != null:
 		label.text = "%06d" % _latest_score
-	if _state_label != null:
-		_state_label.text = "STATE: %s" % _state_to_text(_latest_state)
 	if _reset_button != null:
 		var can_reset := _latest_score >= RESET_GUN_COST and _latest_state == 0
 		_reset_button.disabled = not can_reset
@@ -383,20 +369,6 @@ func _run_scene_transition_option(option_key: String) -> void:
 		action.call()
 
 	_scene_transition_running = false
-
-
-func _state_to_text(value: int) -> String:
-	match value:
-		0:
-			return "PLAYING"
-		1:
-			return "PAUSED"
-		2:
-			return "LEVEL_COMPLETE"
-		3:
-			return "GAME_OVER"
-		_:
-			return "UNKNOWN"
 
 
 func _unhandled_input(event: InputEvent) -> void:

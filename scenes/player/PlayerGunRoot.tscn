@@ -49,18 +49,17 @@ near = 0.01
 
 [node name="PlayerGun" parent="." unique_id=49404378 instance=ExtResource("1_1gijn")]
 collision_layer = 17
-spin_speed = 3.25
+spin_speed = 3.0
 fire_spin_impulse = 0.0
 upward_recoil_force = 13.0
 pitch_impulse = 4.0
 backspin_impulse = -3.5
 backspin_falloff_damping = 3.0
-backspin_protection_time = 0.75
+backspin_protection_time = 2.0
 backspin_min_after_fire = 0.9
 backspin_collision_cancel_resistance = 1.0
 auto_upright_delay_after_fire = 0.25
 gravity_scale_after_first_shot = 0.825
-debug_bullet_spawn = true
 
 [node name="Sight2" type="Marker3D" parent="PlayerGun" unique_id=1462523811]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.032668024, -1.1594155)
