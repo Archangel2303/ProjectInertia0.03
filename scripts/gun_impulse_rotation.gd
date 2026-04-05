@@ -17,16 +17,18 @@ func handle_input(impulse_strength: float, input_cooldown: float, gun_basis: Bas
 	var dir := Vector3.ZERO
 
 	if Input.is_action_just_pressed("move_forward"):
-		dir = pitch_axis
-	elif Input.is_action_just_pressed("move_back"):
 		dir = -pitch_axis
+	elif Input.is_action_just_pressed("move_back"):
+		dir = pitch_axis
 	elif Input.is_action_just_pressed("move_left"):
 		dir = yaw_axis
 	elif Input.is_action_just_pressed("move_right"):
 		dir = -yaw_axis
 
 	if dir != Vector3.ZERO:
+		# Each new WASD press immediately replaces the current impulse.
 		_target_angular_velocity = dir * impulse_strength
+		_impulse_velocity = dir * impulse_strength
 		_last_input_time = now
 
 
@@ -51,10 +53,18 @@ func integrate(
 	# Decay target velocity
 	_target_angular_velocity = _target_angular_velocity.lerp(Vector3.ZERO, damping * dt)
 
+	# Cut off long decay tail so passive spin resumes promptly
+	if _target_angular_velocity.length_squared() < 4.0:
+		_target_angular_velocity = Vector3.ZERO
+	if _target_angular_velocity == Vector3.ZERO and _impulse_velocity.length_squared() < 1.0:
+		_impulse_velocity = Vector3.ZERO
+
 
 ## Absorb current physics angular velocity (e.g. after fire recoil) so it decays naturally.
+## Clears the old WASD target so the new velocity (recoil) isn't fought.
 func sync_from_state(state: PhysicsDirectBodyState3D) -> void:
 	_impulse_velocity = state.angular_velocity
+	_target_angular_velocity = state.angular_velocity
 
 
 func is_active() -> bool:

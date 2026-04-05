@@ -264,9 +264,7 @@ func _physics_process(delta: float) -> void:
 	else:
 		_aim_time = 0.0
 	_was_aiming = is_aiming
-	# Editor-side SpringArm tuning mode:
-	# disable runtime stage-2 spring-arm collision overrides so editor settings drive behavior.
-	# _update_stage2_spring_arm_collision_mode(is_aiming)
+	_update_stage2_spring_arm_collision_mode(is_aiming)
 
 	if not is_aiming and stage1_follow_translation_only and gun != null:
 		stage2_smoothed_safe_dist = -1.0
@@ -298,12 +296,10 @@ func _physics_process(delta: float) -> void:
 		_apply_stage1_zone_correction(delta)
 
 	var target_pos := _get_stage_target_position(is_aiming)
-	# Editor-side SpringArm tuning mode:
-	# disable runtime stage-2 stabilization to avoid fighting editor collision behavior.
-	# if is_aiming and stage2_contact_stabilization:
-	# 	target_pos = _get_stage2_stabilized_target_position(target_pos, delta)
+	if is_aiming and stage2_contact_stabilization:
+		target_pos = _get_stage2_stabilized_target_position(target_pos, delta)
 	if not is_aiming:
-		# stage2_target_pos_initialized = false
+		stage2_target_pos_initialized = false
 		if stage1_use_custom_collision_solver:
 			target_pos = _resolve_stage1_collision_target(target_pos, delta)
 		else:
@@ -337,9 +333,7 @@ func _physics_process(delta: float) -> void:
 		active_snap_distance = minf(active_snap_distance, aim_sustain_snap_distance)
 
 	if is_aiming and global_transform.origin.distance_to(target_pos) > active_snap_distance:
-		# Editor-side SpringArm tuning mode:
-		# bypass runtime stage-2 collision solver and use direct aim target.
-		global_transform.origin = target_pos
+		global_transform.origin = _resolve_stage2_collision_target(target_pos, delta)
 		stage1_motion_velocity = Vector3.ZERO
 	else:
 		#smoothly move toward target position
@@ -367,9 +361,7 @@ func _physics_process(delta: float) -> void:
 				if stage1_use_custom_collision_solver:
 					desired_origin = _resolve_stage1_collision_target(desired_origin, delta)
 		else:
-			# Editor-side SpringArm tuning mode:
-			# bypass runtime stage-2 collision solver so SpringArm handles contact response.
-			desired_origin = desired_origin
+			desired_origin = _resolve_stage2_collision_target(desired_origin, delta)
 			if aim_max_follow_error > 0.0:
 				var remain := target_pos - desired_origin
 				var remain_len := remain.length()

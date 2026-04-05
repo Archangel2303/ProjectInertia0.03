@@ -95,6 +95,7 @@ var fire_queued := false
 var bullet_spawn_queued := false
 var backspin_protection_time_left := 0.0
 var auto_upright_cooldown_left := 0.0
+var has_fired := false
 
 @onready var gun_mesh: MeshInstance3D = get_node_or_null("MeshInstance3D") as MeshInstance3D
 
@@ -149,22 +150,24 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 			passive_spin_response, cross_axis_damping, effective_backspin_damping
 		)
 
-		if backspin_protection_time_left > 0.0:
-			backspin_protection_time_left = maxf(0.0, backspin_protection_time_left - state.step)
-			spin_controller.protect_backspin_component(
-				state, passive_spin_axis_mode, -signf(backspin_impulse),
-				backspin_min_after_fire, backspin_collision_cancel_resistance
-			)
+	# Backspin protection runs regardless of impulse/passive mode
+	if backspin_protection_time_left > 0.0:
+		backspin_protection_time_left = maxf(0.0, backspin_protection_time_left - state.step)
+		spin_controller.protect_backspin_component(
+			state, passive_spin_axis_mode, -signf(backspin_impulse),
+			backspin_min_after_fire, backspin_collision_cancel_resistance
+		)
 
 	# --- Fire orchestration ---
 	if fire_queued:
 		fire_queued = false
+		has_fired = true
 		_apply_fire_impulses(state.transform.basis)
 		gamemanager.register_shot_fired()
+		backspin_protection_time_left = maxf(0.0, backspin_protection_time)
 		if _impulse_active:
 			impulse_rotation.sync_from_state(state)
 		else:
-			backspin_protection_time_left = maxf(0.0, backspin_protection_time)
 			spin_controller.protect_backspin_component(
 				state, passive_spin_axis_mode, -signf(backspin_impulse),
 				backspin_min_after_fire, backspin_collision_cancel_resistance
@@ -185,6 +188,8 @@ func _process(_delta: float) -> void:
 	if not impulse_rotation_enabled:
 		return
 	if gamemanager == null:
+		return
+	if not has_fired:
 		return
 	var is_playing := int(gamemanager.state) == int(gamemanager.GameState.PLAYING)
 	if get_tree().paused or not is_playing:
@@ -207,7 +212,7 @@ func _physics_process(delta: float) -> void:
 	)
 
 
-func _input(event):
+func _unhandled_input(event):
 	if gamemanager == null:
 		return
 	var is_playing := int(gamemanager.state) == int(gamemanager.GameState.PLAYING)
@@ -274,6 +279,7 @@ func _apply_cached_spawn() -> void:
 	bullet_spawn_queued = false
 	backspin_protection_time_left = 0.0
 	auto_upright_cooldown_left = 0.0
+	has_fired = false
 	impulse_rotation.reset()
 	gravity_armer.configure(enable_gravity_after_first_shot, gravity_scale_after_first_shot)
 	gravity_armer.reset(self, 0.0)
