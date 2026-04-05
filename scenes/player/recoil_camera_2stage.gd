@@ -828,23 +828,36 @@ func _apply_stage1_zone_correction(delta: float) -> void:
 
    
 func _aim_rotation_(delta: float, rot_speed_override: float = -1.0) -> void:
-	# always face gun-forward while orbiting to stage 2 anchor position
-	var desired_basis: Basis
+	# Build desired rotation so the camera's forward passes through the gun's aim target
+	# regardless of where the stage-2 collision solver has repositioned the rig.
+	# In the unobstructed case the result is identical to copying the gun basis.
 
+	# Resolve gun forward axis and a world anchor point on the gun.
+	var gun_forward := Vector3.FORWARD
+	var aim_origin := global_transform.origin  # fallback
 	if cam_aim_marker != null:
-		desired_basis = cam_aim_marker.global_transform.basis
+		gun_forward = (-cam_aim_marker.global_transform.basis.z).normalized()
+		aim_origin = cam_aim_marker.global_transform.origin
 	elif muzzle_marker != null:
-		desired_basis = muzzle_marker.global_transform.basis
+		gun_forward = (-muzzle_marker.global_transform.basis.z).normalized()
+		aim_origin = muzzle_marker.global_transform.origin
 	elif gun != null:
-		desired_basis = gun.global_transform.basis
+		gun_forward = (-gun.global_transform.basis.z).normalized()
+		aim_origin = gun.global_transform.origin
 	elif sight_marker != null:
-		desired_basis = sight_marker.global_transform.basis
+		gun_forward = (-sight_marker.global_transform.basis.z).normalized()
+		aim_origin = sight_marker.global_transform.origin
 	else:
 		return
 
-	if remove_roll_in_aim:
-		# remove roll while preserving aim forward direction
-		desired_basis = _basis_without_roll(desired_basis)
+	# Project a far target along the gun's own forward so the sight stays centered.
+	var aim_target := aim_origin + gun_forward * aim_forward_distance
+
+	# Look from the rig's current (post-collision) position toward that target.
+	var to_target := (aim_target - global_transform.origin).normalized()
+	if to_target.length_squared() < 0.000001:
+		return
+	var desired_basis := _basis_from_forward_no_roll(to_target)
 
 	var active_rot_speed := rot_speed_override if rot_speed_override > 0.0 else rot_speed
 	if stage2_contact_stabilization and _is_stage2_spin_contact_active():

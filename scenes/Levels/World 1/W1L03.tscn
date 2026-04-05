@@ -296,66 +296,6 @@ shader_parameter/penetration_release_distance = 0.9
 shader_parameter/penetration_alpha_scale = 0.08
 shader_parameter/penetration_vignette_boost = 0.75
 
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_vb3rb"]
-render_priority = 0
-shader = ExtResource("2_nqis6")
-shader_parameter/grid_color = Color(1, 0, 1, 1)
-shader_parameter/core_color = Color(1, 1, 1, 1)
-shader_parameter/bg_color = Color(0.01, 0.02, 0.05, 1)
-shader_parameter/edge_color = Color(0, 1, 0.6, 1)
-shader_parameter/grid_scale = 1.0
-shader_parameter/line_width = 0.002
-shader_parameter/grid_glow = 2.0
-shader_parameter/fade_start_distance = 5.0
-shader_parameter/fade_end_distance = 120.0
-shader_parameter/far_line_width_scale = 0.25
-shader_parameter/far_intensity_scale = 0.2
-shader_parameter/fade_power = 1.4
-shader_parameter/grazing_width_scale = 0.45
-shader_parameter/max_aa_spread = 0.06
-shader_parameter/core_width_ratio = 0.0002
-shader_parameter/core_glow = 0.008
-shader_parameter/hollow_strength = 0.35
-shader_parameter/hollow_curve = 1.25
-shader_parameter/core_emission_softness = 1.4
-shader_parameter/core_color_bias = 0.7
-shader_parameter/emission_peak_limit = 2.5
-shader_parameter/core_far_suppression = 0.85
-shader_parameter/hollow_light_kill = 0.9
-shader_parameter/alias_risk_start = 1.2
-shader_parameter/alias_risk_end = 2.8
-shader_parameter/alias_outer_suppression = 0.35
-shader_parameter/alias_core_suppression = 0.55
-shader_parameter/alias_emission_suppression = 0.45
-shader_parameter/min_core_visibility = 0.4
-shader_parameter/min_core_emission = 0.3
-shader_parameter/guaranteed_core_ratio = 0.35
-shader_parameter/core_albedo_add = 0.35
-shader_parameter/edge_glow = 3.0
-shader_parameter/fresnel_power = 4.0
-shader_parameter/chromatic_aberration_strength = 0.0012
-shader_parameter/chromatic_aberration_edge_start = 0.72
-shader_parameter/chromatic_aberration_intensity = 0.12
-shader_parameter/glitch_pulse_strength = 0.12
-shader_parameter/glitch_pulse_rate = 0.35
-shader_parameter/glitch_pulse_density = 0.03
-shader_parameter/glitch_pulse_speed = 1.4
-shader_parameter/near_camera_dither_enabled = true
-shader_parameter/fade_distance = 0.5
-shader_parameter/fade_sharpness = 1.0
-shader_parameter/grazing_alpha_floor = 0.2
-shader_parameter/grazing_alpha_power = 1.25
-shader_parameter/grazing_hard_start = 0.22
-shader_parameter/grazing_hard_floor = 0.45
-shader_parameter/grazing_hard_power = 0.85
-shader_parameter/vignette_alpha_floor = 0.15
-shader_parameter/vignette_start = 0.7
-shader_parameter/penetration_window_enabled = true
-shader_parameter/penetration_trigger_distance = 0.35
-shader_parameter/penetration_release_distance = 0.9
-shader_parameter/penetration_alpha_scale = 0.08
-shader_parameter/penetration_vignette_boost = 0.75
-
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_bwsxe"]
 render_priority = 0
 shader = ExtResource("2_nqis6")
@@ -479,71 +419,6 @@ shader_parameter/penetration_release_distance = 0.9
 shader_parameter/penetration_alpha_scale = 0.08
 shader_parameter/penetration_vignette_boost = 0.75
 
-[sub_resource type="PlaneMesh" id="PlaneMesh_4pnfv"]
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_yw2aj"]
-render_priority = 0
-shader = ExtResource("3_rm7cc")
-shader_parameter/grid_color = Color(1, 0, 1, 1)
-shader_parameter/core_color = Color(1, 1, 1, 1)
-shader_parameter/bg_color = Color(0, 0, 0, 1)
-shader_parameter/edge_color = Color(0, 1, 0.6, 1)
-shader_parameter/grid_scale = 1.0
-shader_parameter/line_width = 0.002
-shader_parameter/grid_glow = 2.0
-shader_parameter/fade_start_distance = 5.0
-shader_parameter/fade_end_distance = 120.0
-shader_parameter/far_line_width_scale = 0.25
-shader_parameter/far_intensity_scale = 0.2
-shader_parameter/fade_power = 1.4
-shader_parameter/grazing_width_scale = 0.45
-shader_parameter/max_aa_spread = 0.06
-shader_parameter/core_width_ratio = 0.28
-shader_parameter/core_glow = 0.015
-shader_parameter/hollow_strength = 0.35
-shader_parameter/hollow_curve = 1.25
-shader_parameter/core_emission_softness = 1.4
-shader_parameter/core_color_bias = 0.7
-shader_parameter/emission_peak_limit = 2.5
-shader_parameter/core_far_suppression = 0.85
-shader_parameter/hollow_light_kill = 0.9
-shader_parameter/alias_risk_start = 1.2
-shader_parameter/alias_risk_end = 2.8
-shader_parameter/alias_outer_suppression = 0.35
-shader_parameter/alias_core_suppression = 0.55
-shader_parameter/alias_emission_suppression = 0.45
-shader_parameter/min_core_visibility = 0.4
-shader_parameter/min_core_emission = 0.3
-shader_parameter/guaranteed_core_ratio = 0.35
-shader_parameter/core_albedo_add = 0.35
-shader_parameter/edge_glow = 3.0
-shader_parameter/fresnel_power = 4.0
-shader_parameter/chromatic_aberration_strength = 0.0012
-shader_parameter/chromatic_aberration_edge_start = 0.72
-shader_parameter/chromatic_aberration_intensity = 0.12
-shader_parameter/glitch_pulse_strength = 0.12
-shader_parameter/glitch_pulse_rate = 0.35
-shader_parameter/glitch_pulse_density = 0.03
-shader_parameter/glitch_pulse_speed = 1.4
-shader_parameter/dither_strength = 0.012
-shader_parameter/dither_emission_strength = 0.02
-shader_parameter/dither_world_scale = 36.0
-shader_parameter/near_camera_dither_enabled = true
-shader_parameter/fade_distance = 0.5
-shader_parameter/fade_sharpness = 1.0
-shader_parameter/grazing_alpha_floor = 0.2
-shader_parameter/grazing_alpha_power = 1.25
-shader_parameter/grazing_hard_start = 0.22
-shader_parameter/grazing_hard_floor = 0.45
-shader_parameter/grazing_hard_power = 0.85
-shader_parameter/vignette_alpha_floor = 0.15
-shader_parameter/vignette_start = 0.7
-shader_parameter/penetration_window_enabled = true
-shader_parameter/penetration_trigger_distance = 0.35
-shader_parameter/penetration_release_distance = 0.9
-shader_parameter/penetration_alpha_scale = 0.08
-shader_parameter/penetration_vignette_boost = 0.75
-
 [node name="FiringRange" type="Node3D" unique_id=584624916]
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1757781760]
@@ -573,35 +448,84 @@ material_override = SubResource("ShaderMaterial_nxwte")
 mesh = SubResource("BoxMesh_wpc48")
 surface_material_override/0 = SubResource("ShaderMaterial_aq7qs")
 
+[node name="CollisionShape3D2" type="CollisionShape3D" parent="Floor" unique_id=1045908455]
+transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, 0, -1.9923606, 3.8403916)
+shape = SubResource("BoxShape3D_kuvsi")
+
+[node name="MeshInstance3D2" type="MeshInstance3D" parent="Floor" unique_id=312291018]
+transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, 0, -2.0047474, 3.8403916)
+material_override = SubResource("ShaderMaterial_nxwte")
+mesh = SubResource("BoxMesh_wpc48")
+surface_material_override/0 = SubResource("ShaderMaterial_aq7qs")
+
+[node name="CollisionShape3D3" type="CollisionShape3D" parent="Floor" unique_id=2128345254]
+transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, 0, -1.9923606, 7.7237906)
+shape = SubResource("BoxShape3D_kuvsi")
+
+[node name="MeshInstance3D3" type="MeshInstance3D" parent="Floor" unique_id=891786900]
+transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, 0, -2.0047474, 7.7237906)
+material_override = SubResource("ShaderMaterial_nxwte")
+mesh = SubResource("BoxMesh_wpc48")
+surface_material_override/0 = SubResource("ShaderMaterial_aq7qs")
+
+[node name="CollisionShape3D4" type="CollisionShape3D" parent="Floor" unique_id=1398642197]
+transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, 2.3541288, -1.9923606, 7.7237906)
+shape = SubResource("BoxShape3D_kuvsi")
+
+[node name="MeshInstance3D4" type="MeshInstance3D" parent="Floor" unique_id=1633090617]
+transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, 2.3541288, -2.0047474, 7.7237906)
+material_override = SubResource("ShaderMaterial_nxwte")
+mesh = SubResource("BoxMesh_wpc48")
+surface_material_override/0 = SubResource("ShaderMaterial_aq7qs")
+
+[node name="CollisionShape3D5" type="CollisionShape3D" parent="Floor" unique_id=2139109393]
+transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, -2.3378277, -1.9923606, 7.7237906)
+shape = SubResource("BoxShape3D_kuvsi")
+
+[node name="MeshInstance3D5" type="MeshInstance3D" parent="Floor" unique_id=309028690]
+transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, -2.3378277, -2.0047474, 7.7237906)
+material_override = SubResource("ShaderMaterial_nxwte")
+mesh = SubResource("BoxMesh_wpc48")
+surface_material_override/0 = SubResource("ShaderMaterial_aq7qs")
+
 [node name="Walls" type="StaticBody3D" parent="." unique_id=677455794 groups=["world"]]
 transform = Transform3D(8, 0, 0, 0, 8, 0, 0, 0, 8, 0, 0, 0)
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Walls" unique_id=1731404456]
-transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, -3.9983516, 1.9085188, 0)
+transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, -2.3877132, 1.9085188, 0)
 shape = SubResource("BoxShape3D_wfsm5")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="Walls" unique_id=733297739]
-transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, -3.9983516, 1.9085188, 0)
+transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, -2.3877132, 1.9085188, 0)
 mesh = SubResource("BoxMesh_8f0oq")
 surface_material_override/0 = SubResource("ShaderMaterial_w6ry0")
 
 [node name="CollisionShape3D2" type="CollisionShape3D" parent="Walls" unique_id=775679801]
-transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, 3.8521242, 1.9085188, 0)
+transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, 2.4269938, 1.9085188, 0)
 shape = SubResource("BoxShape3D_wfsm5")
 
 [node name="MeshInstance3D2" type="MeshInstance3D" parent="Walls" unique_id=969497349]
-transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, 3.8521242, 1.9085188, 0)
+transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, 2.4269938, 1.9085188, 0)
 mesh = SubResource("BoxMesh_8f0oq")
 surface_material_override/0 = SubResource("ShaderMaterial_y27tw")
 
-[node name="CollisionShape3D3" type="CollisionShape3D" parent="Walls" unique_id=1474083539]
-transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, -0.08214617, 1.9085188, 3.9663255)
+[node name="CollisionShape3D3" type="CollisionShape3D" parent="Walls" unique_id=616435684]
+transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, -2.391568, 1.9085188, 3.8410306)
 shape = SubResource("BoxShape3D_wfsm5")
 
-[node name="MeshInstance3D3" type="MeshInstance3D" parent="Walls" unique_id=1225054157]
-transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, -0.08214617, 1.9085188, 3.9663255)
+[node name="MeshInstance3D3" type="MeshInstance3D" parent="Walls" unique_id=1747655132]
+transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, -2.391568, 1.9085188, 3.8410306)
 mesh = SubResource("BoxMesh_8f0oq")
-surface_material_override/0 = SubResource("ShaderMaterial_vb3rb")
+surface_material_override/0 = SubResource("ShaderMaterial_w6ry0")
+
+[node name="CollisionShape3D5" type="CollisionShape3D" parent="Walls" unique_id=1738872565]
+transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, 2.4220011, 1.9085188, 3.8410306)
+shape = SubResource("BoxShape3D_wfsm5")
+
+[node name="MeshInstance3D5" type="MeshInstance3D" parent="Walls" unique_id=1596725643]
+transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, 2.4220011, 1.9085188, 3.8410306)
+mesh = SubResource("BoxMesh_8f0oq")
+surface_material_override/0 = SubResource("ShaderMaterial_y27tw")
 
 [node name="CollisionShape3D4" type="CollisionShape3D" parent="Walls" unique_id=248685357]
 transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, -0.08214617, 1.9085188, -3.9336064)
@@ -609,6 +533,51 @@ shape = SubResource("BoxShape3D_wfsm5")
 
 [node name="MeshInstance3D4" type="MeshInstance3D" parent="Walls" unique_id=674798085]
 transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, -0.08214617, 1.9085188, -3.9336064)
+mesh = SubResource("BoxMesh_8f0oq")
+surface_material_override/0 = SubResource("ShaderMaterial_bwsxe")
+
+[node name="CollisionShape3D6" type="CollisionShape3D" parent="Walls" unique_id=882154358]
+transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, -0.08214617, 1.9085188, 10.007932)
+shape = SubResource("BoxShape3D_wfsm5")
+
+[node name="MeshInstance3D6" type="MeshInstance3D" parent="Walls" unique_id=270775161]
+transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, -0.08214617, 1.9085188, 10.007932)
+mesh = SubResource("BoxMesh_8f0oq")
+surface_material_override/0 = SubResource("ShaderMaterial_bwsxe")
+
+[node name="CollisionShape3D7" type="CollisionShape3D" parent="Walls" unique_id=1470618456]
+transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, -3.928145, 1.9085188, 10.007932)
+shape = SubResource("BoxShape3D_wfsm5")
+
+[node name="MeshInstance3D7" type="MeshInstance3D" parent="Walls" unique_id=836784105]
+transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, -3.928145, 1.9085188, 10.007932)
+mesh = SubResource("BoxMesh_8f0oq")
+surface_material_override/0 = SubResource("ShaderMaterial_bwsxe")
+
+[node name="CollisionShape3D8" type="CollisionShape3D" parent="Walls" unique_id=2139400059]
+transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, 3.7839055, 1.9085188, 10.007932)
+shape = SubResource("BoxShape3D_wfsm5")
+
+[node name="MeshInstance3D8" type="MeshInstance3D" parent="Walls" unique_id=1086539956]
+transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, 3.7839055, 1.9085188, 10.007932)
+mesh = SubResource("BoxMesh_8f0oq")
+surface_material_override/0 = SubResource("ShaderMaterial_bwsxe")
+
+[node name="CollisionShape3D9" type="CollisionShape3D" parent="Walls" unique_id=2010478648]
+transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, 6.284473, 1.9085188, 6.989459)
+shape = SubResource("BoxShape3D_wfsm5")
+
+[node name="MeshInstance3D9" type="MeshInstance3D" parent="Walls" unique_id=1870834003]
+transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, 6.284473, 1.9085188, 6.989459)
+mesh = SubResource("BoxMesh_8f0oq")
+surface_material_override/0 = SubResource("ShaderMaterial_bwsxe")
+
+[node name="CollisionShape3D10" type="CollisionShape3D" parent="Walls" unique_id=478673793]
+transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, -6.2962756, 1.9085188, 6.989459)
+shape = SubResource("BoxShape3D_wfsm5")
+
+[node name="MeshInstance3D10" type="MeshInstance3D" parent="Walls" unique_id=643845143]
+transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, -6.2962756, 1.9085188, 6.989459)
 mesh = SubResource("BoxMesh_8f0oq")
 surface_material_override/0 = SubResource("ShaderMaterial_bwsxe")
 
@@ -621,6 +590,46 @@ shape = SubResource("BoxShape3D_wfsm5")
 
 [node name="MeshInstance3D3" type="MeshInstance3D" parent="Roof" unique_id=2120353129]
 transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, -0.08214617, 5.7526746, -0.024152994)
+cast_shadow = 0
+mesh = SubResource("BoxMesh_8f0oq")
+surface_material_override/0 = SubResource("ShaderMaterial_67aef")
+
+[node name="CollisionShape3D4" type="CollisionShape3D" parent="Roof" unique_id=224302660]
+transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, -0.08214617, 5.7526746, 3.822416)
+shape = SubResource("BoxShape3D_wfsm5")
+
+[node name="MeshInstance3D4" type="MeshInstance3D" parent="Roof" unique_id=105417318]
+transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, -0.08214617, 5.7526746, 3.822416)
+cast_shadow = 0
+mesh = SubResource("BoxMesh_8f0oq")
+surface_material_override/0 = SubResource("ShaderMaterial_67aef")
+
+[node name="CollisionShape3D5" type="CollisionShape3D" parent="Roof" unique_id=1956401980]
+transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, 3.9965515, 5.7526746, 6.6659784)
+shape = SubResource("BoxShape3D_wfsm5")
+
+[node name="MeshInstance3D5" type="MeshInstance3D" parent="Roof" unique_id=1441252320]
+transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, 3.9965515, 5.7526746, 6.6659784)
+cast_shadow = 0
+mesh = SubResource("BoxMesh_8f0oq")
+surface_material_override/0 = SubResource("ShaderMaterial_67aef")
+
+[node name="CollisionShape3D6" type="CollisionShape3D" parent="Roof" unique_id=2033476965]
+transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, -0.061398983, 5.7526746, 6.6659784)
+shape = SubResource("BoxShape3D_wfsm5")
+
+[node name="MeshInstance3D6" type="MeshInstance3D" parent="Roof" unique_id=1991426792]
+transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, -0.061398983, 5.7526746, 6.6659784)
+cast_shadow = 0
+mesh = SubResource("BoxMesh_8f0oq")
+surface_material_override/0 = SubResource("ShaderMaterial_67aef")
+
+[node name="CollisionShape3D7" type="CollisionShape3D" parent="Roof" unique_id=666295792]
+transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, -3.757991, 5.7526746, 6.6659784)
+shape = SubResource("BoxShape3D_wfsm5")
+
+[node name="MeshInstance3D7" type="MeshInstance3D" parent="Roof" unique_id=123806947]
+transform = Transform3D(4, 0, 0, 0, 4, 0, 0, 0, 4, -3.757991, 5.7526746, 6.6659784)
 cast_shadow = 0
 mesh = SubResource("BoxMesh_8f0oq")
 surface_material_override/0 = SubResource("ShaderMaterial_67aef")
@@ -641,33 +650,11 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.029220343, 0.08981432, -10.
 [node name="EnemyTestDummy4" parent="." unique_id=415437669 instance=ExtResource("6_5ghtf")]
 transform = Transform3D(-0.99989533, 0, -0.014468316, 0, 1, 0, 0.014468316, 0, -0.99989533, -0.043909073, 0.08981432, 11.731268)
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=857931244]
-transform = Transform3D(40, 0, 0, 0, 40, 0, 0, 0, 40, 0, -0.52338123, 0)
-mesh = SubResource("PlaneMesh_4pnfv")
-surface_material_override/0 = SubResource("ShaderMaterial_yw2aj")
+[node name="EnemyTestDummy2" parent="." unique_id=83287643 instance=ExtResource("6_5ghtf")]
+transform = Transform3D(-0.999878, 0, 0.015619986, 0, 1, 0, -0.015619986, 0, -0.999878, -0.07012893, 0.09024577, 22.378622)
 
-[node name="MeshInstance3D3" type="MeshInstance3D" parent="." unique_id=174707122]
-transform = Transform3D(-1.7484556e-06, 40, 0, -40, -1.7484556e-06, 0, 0, 0, 40, -17.5362, 14.761465, 0.008468628)
-mesh = SubResource("PlaneMesh_4pnfv")
-surface_material_override/0 = SubResource("ShaderMaterial_yw2aj")
+[node name="EnemyTestDummy3" parent="." unique_id=1091450350 instance=ExtResource("6_5ghtf")]
+transform = Transform3D(0.04436915, 0, 0.9990152, 0, 1, 0, -0.9990152, 0, 0.04436915, -30.822252, 0, 49.55105)
 
-[node name="MeshInstance3D4" type="MeshInstance3D" parent="." unique_id=256351427]
-transform = Transform3D(-1.7484556e-06, -40, 0, 40, -1.7484556e-06, 0, 0, 0, 40, 16.836033, 14.850339, 0)
-mesh = SubResource("PlaneMesh_4pnfv")
-surface_material_override/0 = SubResource("ShaderMaterial_yw2aj")
-
-[node name="MeshInstance3D5" type="MeshInstance3D" parent="." unique_id=1857976195]
-transform = Transform3D(-40, 3.4969112e-06, 1.7484556e-06, -1.7484556e-06, 7.642742e-14, -40, -3.4969112e-06, -40, 7.642742e-14, -5.736664, 14.850339, 16.43774)
-mesh = SubResource("PlaneMesh_4pnfv")
-surface_material_override/0 = SubResource("ShaderMaterial_yw2aj")
-
-[node name="MeshInstance3D6" type="MeshInstance3D" parent="." unique_id=1182890509]
-transform = Transform3D(40, 0, 1.5285483e-13, 1.5285483e-13, 1.7484556e-06, -40, 0, 40, 1.7484556e-06, -5.736664, 14.850339, -16.42011)
-mesh = SubResource("PlaneMesh_4pnfv")
-surface_material_override/0 = SubResource("ShaderMaterial_yw2aj")
-
-[node name="MeshInstance3D2" type="MeshInstance3D" parent="." unique_id=566211084]
-transform = Transform3D(40, 0, 0, 0, -40, -3.4969112e-06, 0, 3.4969112e-06, -40, 0, 32.311153, 0)
-cast_shadow = 0
-mesh = SubResource("PlaneMesh_4pnfv")
-surface_material_override/0 = SubResource("ShaderMaterial_yw2aj")
+[node name="EnemyTestDummy5" parent="." unique_id=1863527928 instance=ExtResource("6_5ghtf")]
+transform = Transform3D(-0.00815065, 0, -0.9999668, 0, 1, 0, 0.9999668, 0, -0.00815065, 32.514538, 0, 61.685165)
