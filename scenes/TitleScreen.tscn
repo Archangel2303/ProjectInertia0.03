@@ -1,6 +1,20 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/title_screen.gd" id="1_script"]
+[ext_resource type="Shader" path="res://scenes/synthwave_grid_bg.gdshader" id="2_shader"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_bg"]
+shader = ExtResource("2_shader")
+shader_parameter/bg_color = Color(0.02, 0.01, 0.06, 1)
+shader_parameter/grid_color = Color(1, 0, 0.55, 0.12)
+shader_parameter/horizon_color = Color(0, 0.92, 1, 0.18)
+shader_parameter/grid_spacing = 60.0
+shader_parameter/grid_thickness = 1.2
+shader_parameter/horizon_y = 0.42
+shader_parameter/horizon_glow = 0.06
+shader_parameter/scanline_alpha = 0.04
+shader_parameter/scanline_spacing = 2.0
+shader_parameter/time_scroll_speed = 12.0
 
 [node name="TitleScreen" type="Control"]
 layout_mode = 3
@@ -18,7 +32,8 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.06, 0.08, 0.12, 1)
+material = SubResource("ShaderMaterial_bg")
+color = Color(1, 1, 1, 1)
 
 [node name="Center" type="CenterContainer" parent="."]
 layout_mode = 1
@@ -29,37 +44,43 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="Panel" type="PanelContainer" parent="Center"]
-custom_minimum_size = Vector2(760, 620)
+custom_minimum_size = Vector2(800, 660)
 layout_mode = 2
 
 [node name="Margin" type="MarginContainer" parent="Center/Panel"]
 layout_mode = 2
-theme_override_constants/margin_left = 28
-theme_override_constants/margin_top = 24
-theme_override_constants/margin_right = 28
-theme_override_constants/margin_bottom = 24
+theme_override_constants/margin_left = 36
+theme_override_constants/margin_top = 28
+theme_override_constants/margin_right = 36
+theme_override_constants/margin_bottom = 28
 
 [node name="VBox" type="VBoxContainer" parent="Center/Panel/Margin"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_constants/separation = 12
+theme_override_constants/separation = 14
 
 [node name="MenuTitle" type="Label" parent="Center/Panel/Margin/VBox"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 42
-text = "Project Inertia"
+theme_override_font_sizes/font_size = 48
+theme_override_colors/font_color = Color(1, 0, 0.55, 1)
+text = "PROJECT INERTIA"
 horizontal_alignment = 1
+uppercase = true
 
 [node name="MenuSubtitle" type="Label" parent="Center/Panel/Margin/VBox"]
 layout_mode = 2
-text = "Prototype 0.03"
+theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(0, 0.92, 1, 0.7)
+text = "PROTOTYPE 0.03"
 horizontal_alignment = 1
+uppercase = true
 
 [node name="Notification" type="Label" parent="Center/Panel/Margin/VBox"]
 visible = false
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.85, 0.35, 1)
+theme_override_colors/font_color = Color(1, 0.2, 0.55, 1)
+theme_override_font_sizes/font_size = 14
 horizontal_alignment = 1
 
 [node name="Divider" type="HSeparator" parent="Center/Panel/Margin/VBox"]
@@ -77,8 +98,11 @@ theme_override_constants/separation = 10
 
 [node name="Hint" type="Label" parent="Center/Panel/Margin/VBox"]
 layout_mode = 2
-text = "Enter/Space/LMB: Confirm   Esc: Back"
+theme_override_colors/font_color = Color(0.55, 0.55, 0.65, 0.6)
+theme_override_font_sizes/font_size = 12
+text = "ENTER / SPACE / LMB : CONFIRM     ESC : BACK"
 horizontal_alignment = 1
+uppercase = true
 
 [node name="BannerAdPlaceholder" type="PanelContainer" parent="Center/Panel/Margin/VBox"]
 custom_minimum_size = Vector2(0, 72)
@@ -98,6 +122,7 @@ theme_override_constants/separation = 8
 [node name="AdBadge" type="Label" parent="Center/Panel/Margin/VBox/BannerAdPlaceholder/Margin/BannerRow"]
 custom_minimum_size = Vector2(42, 34)
 layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.2, 0.55, 0.8)
 text = "AD"
 horizontal_alignment = 1
 vertical_alignment = 1

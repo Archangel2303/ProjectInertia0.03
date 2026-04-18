@@ -81,6 +81,7 @@ var settings_music_volume := 100.0
 
 
 func _ready() -> void:
+	_apply_synthwave_theme()
 	_setup_banner_ad_placeholders()
 	_load_menu_profile()
 	_apply_entitlement_policy()
@@ -101,6 +102,135 @@ func _ready() -> void:
 	_show_title_screen()
 
 
+# ── Synthwave palette ────────────────────────────────────────────────
+const NEON_MAGENTA := Color(1.0, 0.0, 0.55, 1.0)
+const NEON_CYAN := Color(0.0, 0.92, 1.0, 1.0)
+const NEON_WHITE := Color(0.92, 0.92, 0.96, 1.0)
+const DARK_BG := Color(0.04, 0.02, 0.10, 0.92)
+const PANEL_BG := Color(0.06, 0.03, 0.14, 0.88)
+const BTN_NORMAL_BG := Color(0.08, 0.04, 0.18, 0.9)
+const BTN_HOVER_BG := Color(0.14, 0.04, 0.28, 0.95)
+const BTN_PRESSED_BG := Color(0.22, 0.02, 0.36, 1.0)
+const BTN_DISABLED_BG := Color(0.06, 0.04, 0.10, 0.6)
+const BORDER_COLOR := Color(1.0, 0.0, 0.55, 0.35)
+const BORDER_HOVER := Color(0.0, 0.92, 1.0, 0.55)
+const SEPARATOR_COLOR := Color(1.0, 0.0, 0.55, 0.25)
+
+
+func _apply_synthwave_theme() -> void:
+	var t := Theme.new()
+
+	# ── Panel ─────────────────────────────────────────────────────────
+	var panel_sb := StyleBoxFlat.new()
+	panel_sb.bg_color = PANEL_BG
+	panel_sb.border_color = BORDER_COLOR
+	panel_sb.set_border_width_all(2)
+	panel_sb.set_corner_radius_all(6)
+	panel_sb.shadow_color = Color(1.0, 0.0, 0.55, 0.08)
+	panel_sb.shadow_size = 12
+	t.set_stylebox("panel", "PanelContainer", panel_sb)
+
+	# ── Buttons ───────────────────────────────────────────────────────
+	for state_name in ["normal", "hover", "pressed", "disabled", "focus"]:
+		var sb := StyleBoxFlat.new()
+		sb.set_corner_radius_all(4)
+		sb.set_border_width_all(1)
+		sb.content_margin_left = 16
+		sb.content_margin_right = 16
+		sb.content_margin_top = 10
+		sb.content_margin_bottom = 10
+		match state_name:
+			"normal":
+				sb.bg_color = BTN_NORMAL_BG
+				sb.border_color = BORDER_COLOR
+			"hover":
+				sb.bg_color = BTN_HOVER_BG
+				sb.border_color = BORDER_HOVER
+			"pressed":
+				sb.bg_color = BTN_PRESSED_BG
+				sb.border_color = NEON_CYAN
+			"disabled":
+				sb.bg_color = BTN_DISABLED_BG
+				sb.border_color = Color(0.3, 0.2, 0.4, 0.2)
+			"focus":
+				sb.bg_color = BTN_HOVER_BG
+				sb.border_color = NEON_CYAN
+				sb.set_border_width_all(2)
+		t.set_stylebox(state_name, "Button", sb)
+
+	t.set_color("font_color", "Button", NEON_CYAN)
+	t.set_color("font_hover_color", "Button", NEON_WHITE)
+	t.set_color("font_pressed_color", "Button", NEON_MAGENTA)
+	t.set_color("font_disabled_color", "Button", Color(0.4, 0.3, 0.5, 0.5))
+	t.set_color("font_focus_color", "Button", NEON_WHITE)
+	t.set_font_size("font_size", "Button", 16)
+
+	# ── Labels ────────────────────────────────────────────────────────
+	t.set_color("font_color", "Label", NEON_WHITE)
+	t.set_font_size("font_size", "Label", 15)
+
+	# ── CheckBox ──────────────────────────────────────────────────────
+	t.set_color("font_color", "CheckBox", NEON_CYAN)
+	t.set_color("font_hover_color", "CheckBox", NEON_WHITE)
+
+	# ── OptionButton ──────────────────────────────────────────────────
+	for state_name in ["normal", "hover", "pressed", "disabled", "focus"]:
+		var sb := StyleBoxFlat.new()
+		sb.set_corner_radius_all(4)
+		sb.set_border_width_all(1)
+		sb.content_margin_left = 10
+		sb.content_margin_right = 10
+		sb.content_margin_top = 6
+		sb.content_margin_bottom = 6
+		match state_name:
+			"normal":
+				sb.bg_color = BTN_NORMAL_BG
+				sb.border_color = BORDER_COLOR
+			"hover":
+				sb.bg_color = BTN_HOVER_BG
+				sb.border_color = BORDER_HOVER
+			"pressed":
+				sb.bg_color = BTN_PRESSED_BG
+				sb.border_color = NEON_CYAN
+			"disabled":
+				sb.bg_color = BTN_DISABLED_BG
+				sb.border_color = Color(0.3, 0.2, 0.4, 0.2)
+			"focus":
+				sb.bg_color = BTN_HOVER_BG
+				sb.border_color = NEON_CYAN
+		t.set_stylebox(state_name, "OptionButton", sb)
+	t.set_color("font_color", "OptionButton", NEON_CYAN)
+	t.set_color("font_hover_color", "OptionButton", NEON_WHITE)
+	t.set_color("font_focus_color", "OptionButton", NEON_WHITE)
+
+	# ── HSlider ───────────────────────────────────────────────────────
+	var slider_bg := StyleBoxFlat.new()
+	slider_bg.bg_color = Color(0.08, 0.04, 0.18, 0.8)
+	slider_bg.set_corner_radius_all(3)
+	slider_bg.content_margin_top = 4
+	slider_bg.content_margin_bottom = 4
+	t.set_stylebox("slider", "HSlider", slider_bg)
+	var slider_fill := StyleBoxFlat.new()
+	slider_fill.bg_color = NEON_MAGENTA * Color(1, 1, 1, 0.6)
+	slider_fill.set_corner_radius_all(3)
+	t.set_stylebox("grabber_area", "HSlider", slider_fill)
+	t.set_stylebox("grabber_area_highlight", "HSlider", slider_fill)
+
+	# ── HSeparator ────────────────────────────────────────────────────
+	var sep_sb := StyleBoxFlat.new()
+	sep_sb.bg_color = SEPARATOR_COLOR
+	sep_sb.content_margin_top = 1
+	sep_sb.content_margin_bottom = 1
+	t.set_stylebox("separator", "HSeparator", sep_sb)
+	t.set_constant("separation", "HSeparator", 8)
+
+	# ── ScrollContainer ──────────────────────────────────────────────
+	var scroll_bg := StyleBoxEmpty.new()
+	t.set_stylebox("panel", "ScrollContainer", scroll_bg)
+
+	theme = t
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
 		_go_back()
@@ -108,9 +238,9 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _set_header(title: String, subtitle: String, hint: String = "") -> void:
-	menu_title.text = title
-	menu_subtitle.text = subtitle
-	hint_label.text = hint
+	menu_title.text = title.to_upper()
+	menu_subtitle.text = subtitle.to_upper()
+	hint_label.text = hint.to_upper()
 	_update_banner_ad_placeholder()
 
 
@@ -422,8 +552,8 @@ func _play_ui_interaction_sound() -> void:
 
 func _add_menu_button(text: String, callback: Callable, should_grab_focus := false) -> Button:
 	var button := Button.new()
-	button.custom_minimum_size = Vector2(300, 44)
-	button.text = text
+	button.custom_minimum_size = Vector2(340, 48)
+	button.text = text.to_upper()
 	button.pressed.connect(func() -> void:
 		_play_ui_interaction_sound()
 		if callback.is_valid():
@@ -436,9 +566,15 @@ func _add_menu_button(text: String, callback: Callable, should_grab_focus := fal
 
 func _add_section_title(text: String) -> void:
 	var label := Label.new()
-	label.text = text
-	label.add_theme_font_size_override("font_size", 20)
+	var spacer := Control.new()
+	spacer.custom_minimum_size = Vector2(0, 6)
+	content.add_child(spacer)
+	label.text = text.to_upper()
+	label.add_theme_font_size_override("font_size", 18)
+	label.add_theme_color_override("font_color", NEON_MAGENTA)
 	content.add_child(label)
+	var sep := HSeparator.new()
+	content.add_child(sep)
 
 
 func _add_row(label_text: String, control: Control) -> void:
@@ -447,9 +583,10 @@ func _add_row(label_text: String, control: Control) -> void:
 	row.add_theme_constant_override("separation", 16)
 
 	var label := Label.new()
-	label.text = label_text
+	label.text = label_text.to_upper()
 	label.custom_minimum_size = Vector2(260, 0)
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.add_theme_color_override("font_color", NEON_CYAN * Color(1, 1, 1, 0.8))
 
 	row.add_child(label)
 	row.add_child(control)
@@ -461,6 +598,7 @@ func _make_info_label(text: String) -> Label:
 	label.custom_minimum_size = Vector2(240, 0)
 	label.text = text
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	label.add_theme_color_override("font_color", NEON_WHITE * Color(1, 1, 1, 0.7))
 	return label
 
 

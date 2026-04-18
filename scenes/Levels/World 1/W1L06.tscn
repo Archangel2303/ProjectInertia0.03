@@ -640,31 +640,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.029220343, 0.08981432, -10.
 [node name="EnemyTestDummy4" parent="." unique_id=415437669 instance=ExtResource("6_itahg")]
 transform = Transform3D(-0.99989533, 0, -0.014468316, 0, 1, 0, 0.014468316, 0, -0.99989533, -0.043909073, 0.08981432, 11.731268)
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=857931244]
-transform = Transform3D(40, 0, 0, 0, 40, 0, 0, 0, 40, 0, -0.52338123, 0)
-mesh = SubResource("PlaneMesh_4pnfv")
-surface_material_override/0 = SubResource("ShaderMaterial_yw2aj")
-
-[node name="MeshInstance3D3" type="MeshInstance3D" parent="." unique_id=174707122]
-transform = Transform3D(-1.7484556e-06, 40, 0, -40, -1.7484556e-06, 0, 0, 0, 40, -17.5362, 14.761465, 0.008468628)
-mesh = SubResource("PlaneMesh_4pnfv")
-surface_material_override/0 = SubResource("ShaderMaterial_yw2aj")
-
-[node name="MeshInstance3D4" type="MeshInstance3D" parent="." unique_id=256351427]
-transform = Transform3D(-1.7484556e-06, -40, 0, 40, -1.7484556e-06, 0, 0, 0, 40, 16.836033, 14.850339, 0)
-mesh = SubResource("PlaneMesh_4pnfv")
-surface_material_override/0 = SubResource("ShaderMaterial_yw2aj")
-
-[node name="MeshInstance3D5" type="MeshInstance3D" parent="." unique_id=1857976195]
-transform = Transform3D(-40, 3.4969112e-06, 1.7484556e-06, -1.7484556e-06, 7.642742e-14, -40, -3.4969112e-06, -40, 7.642742e-14, -5.736664, 14.850339, 16.43774)
-mesh = SubResource("PlaneMesh_4pnfv")
-surface_material_override/0 = SubResource("ShaderMaterial_yw2aj")
-
-[node name="MeshInstance3D6" type="MeshInstance3D" parent="." unique_id=1182890509]
-transform = Transform3D(40, 0, 1.5285483e-13, 1.5285483e-13, 1.7484556e-06, -40, 0, 40, 1.7484556e-06, -5.736664, 14.850339, -16.42011)
-mesh = SubResource("PlaneMesh_4pnfv")
-surface_material_override/0 = SubResource("ShaderMaterial_yw2aj")
-
 [node name="MeshInstance3D2" type="MeshInstance3D" parent="." unique_id=566211084]
 transform = Transform3D(40, 0, 0, 0, -40, -3.4969112e-06, 0, 3.4969112e-06, -40, 0, 32.311153, 0)
 cast_shadow = 0

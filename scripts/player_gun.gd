@@ -59,11 +59,11 @@ const GunSpawnManager = preload("res://scripts/gun_spawn_manager.gd")
 @export var auto_upright_min_roll_error_deg := 6.0
 
 @export var impulse_rotation_enabled := true
-@export var impulse_strength := 10.0
+@export var impulse_strength := 7.0
 @export var impulse_snap_speed := 10.0
-@export var impulse_damping := 2.5
-@export var impulse_max_speed := 6.0
-@export var impulse_input_cooldown := 0.5
+@export var impulse_damping := 1.2
+@export var impulse_max_speed := 4.5
+@export var impulse_input_cooldown := 0.25
 
 @export var bullet_scene: PackedScene = preload("res://scenes/Bullet/Bullet01.tscn")
 @export var muzzle_node: Marker3D
@@ -133,11 +133,24 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		auto_upright_cooldown_left = maxf(0.0, auto_upright_cooldown_left - state.step)
 
 	# --- Rotation orchestration ---
-	var _impulse_active := impulse_rotation_enabled and impulse_rotation.is_active()
+	var _impulse_was_active := impulse_rotation_enabled and impulse_rotation.is_active()
+	var _impulse_active := _impulse_was_active
 
 	if _impulse_active:
 		impulse_rotation.integrate(state, impulse_snap_speed, impulse_damping, impulse_max_speed)
-	else:
+		# Re-check: impulse may have just decayed to zero this frame
+		_impulse_active = impulse_rotation.is_active()
+		if not _impulse_active:
+			# Strip roll component so passive spin inherits a clean velocity
+			var spin_axis := state.transform.basis.y.normalized()
+			var ang := state.angular_velocity
+			var backspin_axis := state.transform.basis.x.normalized()
+			backspin_axis = (backspin_axis - spin_axis * backspin_axis.dot(spin_axis)).normalized()
+			var spin_comp := spin_axis * ang.dot(spin_axis)
+			var backspin_comp := backspin_axis * ang.dot(backspin_axis)
+			state.angular_velocity = spin_comp + backspin_comp
+
+	if not _impulse_active:
 		var effective_backspin_damping: float = float(backspin_falloff_damping)
 		var forward: Vector3 = (-state.transform.basis.z).normalized()
 		var pitch_rad: float = asin(clamp(forward.y, -1.0, 1.0))
@@ -150,13 +163,15 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 			passive_spin_response, cross_axis_damping, effective_backspin_damping
 		)
 
-	# Backspin protection runs regardless of impulse/passive mode
-	if backspin_protection_time_left > 0.0:
+	# Backspin protection only during passive spin — skip when WASD impulse is driving rotation
+	if backspin_protection_time_left > 0.0 and not _impulse_active:
 		backspin_protection_time_left = maxf(0.0, backspin_protection_time_left - state.step)
 		spin_controller.protect_backspin_component(
 			state, passive_spin_axis_mode, -signf(backspin_impulse),
 			backspin_min_after_fire, backspin_collision_cancel_resistance
 		)
+	elif backspin_protection_time_left > 0.0:
+		backspin_protection_time_left = maxf(0.0, backspin_protection_time_left - state.step)
 
 	# --- Fire orchestration ---
 	if fire_queued:

@@ -54,9 +54,9 @@ func integrate(
 	_target_angular_velocity = _target_angular_velocity.lerp(Vector3.ZERO, damping * dt)
 
 	# Cut off long decay tail so passive spin resumes promptly
-	if _target_angular_velocity.length_squared() < 4.0:
+	if _target_angular_velocity.length_squared() < 1.0:
 		_target_angular_velocity = Vector3.ZERO
-	if _target_angular_velocity == Vector3.ZERO and _impulse_velocity.length_squared() < 1.0:
+	if _target_angular_velocity == Vector3.ZERO and _impulse_velocity.length_squared() < 0.25:
 		_impulse_velocity = Vector3.ZERO
 
 

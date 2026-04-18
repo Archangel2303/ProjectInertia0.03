@@ -112,9 +112,20 @@ func _select_level_music_stream(level_path: String) -> AudioStream:
     if tracks.is_empty():
         return null
 
-    # Simple stable selection: hash the path
     if level_path.is_empty():
         return tracks[0]
+
+    # Extract the level number from the filename (e.g. "W1L03.tscn" → 3)
+    # so each level gets a deterministic, distinct track assignment.
+    var file_name := level_path.get_file().trim_suffix(".tscn")
+    var marker := file_name.rfind("L")
+    if marker != -1:
+        var suffix := file_name.substr(marker + 1)
+        if suffix.is_valid_int():
+            var level_num := int(suffix)
+            return tracks[posmod(level_num - 1, tracks.size())]
+
+    # Fallback: hash-based selection for non-standard paths
     var stable_index := posmod(level_path.hash(), tracks.size())
     return tracks[stable_index]
 
